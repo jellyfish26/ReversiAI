@@ -1,4 +1,5 @@
 import numpy as np
+import random
 from . import Agent
 
 
@@ -6,7 +7,7 @@ from . import Agent
 class GameBoard(object):
     def __init__(self, first_agent, second_agent):
         if (not isinstance(first_agent, Agent.Agent)) or (not isinstance(second_agent, Agent.Agent)):
-            raise Exception("AgentClassError, Inherit the Agent class.")
+            raise Exception("Inherit the Agent class.")
         self.__first_agent = first_agent
         self.__first_agent.agent_number = -1
         self.__second_agent = second_agent
@@ -16,16 +17,26 @@ class GameBoard(object):
         self.__reversi_board = np.arange(self.__VERTICAL_SIZE * self.__HORIZONTAL_SIZE).reshape(self.__VERTICAL_SIZE,
                                                                                                 self.__HORIZONTAL_SIZE)
         self.__is_game_over = 0
+        self.__turn_agent_number = 0
 
     def __init_board(self):
+        self.__turn_agent_number = -1 if random.randint(2) == 0 else 1
         self.__reversi_board[3][3] = 1
         self.__reversi_board[3][4] = -1
         self.__reversi_board[4][3] = -1
         self.__reversi_board[4][4] = 1
 
     def __get_reverse_cells(self, vertical_index, horizontal_index, agent_number):
+        if (vertical_index < 0 or vertical_index >= self.__VERTICAL_SIZE) and (
+                horizontal_index < 0 or vertical_index >= self.__HORIZONTAL_SIZE):
+            raise IndexError("Reference outside of the board.")
+        if abs(agent_number) != 1:
+            raise Exception("Select 1 or -1 for Agent Number.(-1: white, 1: black)")
+
         ret = np.empty(0)
         save = []
+        if self.__reversi_board[vertical_index][horizontal_index] != 0:
+            return ret
 
         def check(inner_vertical_index, inner_horizontal_index):
             nonlocal agent_number, ret, save
@@ -75,20 +86,56 @@ class GameBoard(object):
         return ret
 
     def get_selectable_cells(self, agent_number):
+        if abs(agent_number) != 1:
+            raise Exception("Select 1 or -1 for Agent Number.(-1: white, 1: black)")
         ret = []
-        for vertical_index in range(0, 8):
-            for horizontal_index in range(0, 8):
+        for vertical_index in range(0, self.__VERTICAL_SIZE):
+            for horizontal_index in range(0, self.__HORIZONTAL_SIZE):
                 if len(self.__get_reverse_cells(vertical_index, horizontal_index, agent_number)) != 0:
                     ret.append((vertical_index, horizontal_index))
         return np.array(ret)
 
+    def count_stones(self, agent_number):
+        if abs(agent_number) != 1:
+            raise Exception("Select 1 or -1 for Agent Number.(-1: white, 1: black)")
+        ret = 0
+        for vertical_index in range(0, self.__VERTICAL_SIZE):
+            for horizontal_index in range(0, self.__HORIZONTAL_SIZE):
+                if self.__reversi_board[vertical_index][horizontal_index] == agent_number:
+                    ret += 1
+        return ret
+
+    # white win = -1, black win = 1, draw = 2, nothing = 0
     def check_game_over(self):
         if self.__is_game_over != 0:
             return self.__is_game_over
+        if len(self.get_selectable_cells(1)) != 0 or len(self.get_selectable_cells(-1)) != 0:
+            return 0
+        white_stones = self.count_stones(-1)
+        black_stones = self.count_stones(1)
+        if white_stones == black_stones:
+            self.__is_game_over = 2
+        elif white_stones < black_stones:
+            self.__is_game_over = -1
+        else:
+            self.__is_game_over = 1
+        return self.__is_game_over
+
+    def put_stone(self, vertical_index, horizontal_index, agent_number):
+        replace_cells = self.__get_reverse_cells(vertical_index, horizontal_index, agent_number)
+        for temp in replace_cells:
+            self.__reversi_board[temp[0]][temp[1]] = agent_number
 
     def game_start(self):
         self.__init_board()
-        pass
+        while self.check_game_over() == 0:
+            select_sell = []
+            if self.__turn_agent_number == -1:
+                select_sell = self.__first_agent.next_step()
+            else:
+                select_sell = self.__second_agent.next_step()
+            self.put_stone(select_sell[0], select_sell[1], self.__turn_agent_number)
+            self.__turn_agent_number *= -1
 
     @property
     def vertical_size(self):
