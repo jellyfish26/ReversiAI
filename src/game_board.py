@@ -1,12 +1,12 @@
 import numpy as np
 import random
-from . import Agent
+from . import agent
 
 
 # white = -1, nothing = 0. black = 1
 class GameBoard(object):
     def __init__(self, first_agent, second_agent):
-        if (not isinstance(first_agent, Agent.Agent)) or (not isinstance(second_agent, Agent.Agent)):
+        if (not isinstance(first_agent, agent.Agent)) or (not isinstance(second_agent, agent.Agent)):
             raise Exception("Inherit the Agent class.")
         self.__first_agent = first_agent
         self.__first_agent.agent_number = -1
@@ -135,6 +135,8 @@ class GameBoard(object):
             else:
                 select_sell = self.__second_agent.next_step()
             self.put_stone(select_sell[0], select_sell[1], self.__turn_agent_number)
+            self.__first_agent.accept_update()
+            self.__second_agent.accept_update()
             self.__turn_agent_number *= -1
 
     @property
