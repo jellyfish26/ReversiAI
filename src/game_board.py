@@ -1,6 +1,6 @@
 import numpy as np
 import random
-from . import agent
+import agent
 
 
 # white = -1, nothing = 0. black = 1
