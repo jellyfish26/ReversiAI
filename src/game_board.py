@@ -50,41 +50,23 @@ class GameBoard(object):
                 ret.extend(save)
             return True
 
-        def move_straight(is_move_vertical):
+        def move_diagonally(move_vertical_value, move_horizontal_value):
             nonlocal vertical_index, horizontal_index, save
             save = []
-            move_index = vertical_index - 1 if is_move_vertical else horizontal_index - 1
-            while move_index >= 0:
-                if check(move_index, horizontal_index) if is_move_vertical else check(vertical_index, move_index):
+            move_vertical_index = vertical_index + move_vertical_value
+            move_horizontal_index = horizontal_index + move_horizontal_value
+            while 0 <= move_vertical_index < 8 and 0 <= move_horizontal_index < 8:
+                if check(move_vertical_index, move_horizontal_index):
                     break
-                move_index -= 1
-            save = []
-            move_index = vertical_index + 1 if is_move_vertical else horizontal_index + 1
-            while move_index < 8:
-                if check(move_index, horizontal_index) if is_move_vertical else check(vertical_index, move_index):
-                    break
-                move_index += 1
+                move_vertical_index += move_vertical_value
+                move_horizontal_index += move_horizontal_value
 
-        move_straight(True)  # move vertical
-        move_straight(False)  # move horizontal
-        # Upper Left
-        save = []
-        move_vertical = vertical_index - 1
-        move_horizontal = horizontal_index - 1
-        while move_vertical >= 0 and move_horizontal >= 0:
-            if check(move_vertical, move_horizontal):
-                break
-            move_vertical -= 1
-            move_horizontal -= 1
-        # Lower Right
-        save = []
-        move_vertical = vertical_index + 1
-        move_horizontal = horizontal_index + 1
-        while move_vertical < 8 and move_horizontal < 8:
-            if check(move_vertical, move_horizontal):
-                break
-            move_vertical += 1
-            move_horizontal += 1
+        for i in [-1, 0, 1]:
+            for j in [-1, 0,  1]:
+                if i == 0 and j == 0:
+                    continue
+                move_diagonally(i, j)
+
         return np.array(ret)
 
     def get_selectable_cells(self, agent_number):
@@ -142,7 +124,6 @@ class GameBoard(object):
             else:
                 select_cell = self.__second_agent.next_step()
             self.put_stone(select_cell[0], select_cell[1], self.__turn_agent_number)
-            print(self.reversi_board)
             self.__first_agent.accept_update()
             self.__second_agent.accept_update()
             self.__turn_agent_number *= -1

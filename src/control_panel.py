@@ -26,7 +26,6 @@ class ControlPanel(threading.Thread):
             return
         horizontal_index = int((event.x - 25) / 75)
         vertical_index = int((event.y - 25) / 75)
-        print(vertical_index, horizontal_index)
         self.__before_select_cell = (vertical_index, horizontal_index)
         if self.__index_to_tag(vertical_index, horizontal_index) in self.__selectable_cells:
             self.__is_waiting_for_select = False
