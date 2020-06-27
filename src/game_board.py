@@ -63,8 +63,8 @@ class GameBoard(object):
                     break
                 move_index += 1
 
-        move_straight(True)  # vertical
-        move_straight(False)  # horizontal
+        move_straight(True)  # move vertical
+        move_straight(False)  # move horizontal
         # Upper Left
         save = []
         move_vertical = vertical_index - 1
