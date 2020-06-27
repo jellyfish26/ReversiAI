@@ -1,6 +1,7 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, ABC
 import control_panel
 import game_board
+import random
 
 
 class Agent(metaclass=ABCMeta):
@@ -73,3 +74,16 @@ class HumanAgent(Agent):
 
     def next_step(self):
         return self.control_panel.wait_choice_cell(self.belong_game_board.get_selectable_cells(self.agent_number))
+
+
+class RandomAgent(Agent, ABC):
+    def __init__(self, agent_name):
+        super().__init__(agent_name, False)
+
+    def accept_update(self):
+        pass
+
+    def next_step(self):
+        selectable = self.belong_game_board.get_selectable_cells(self.agent_number)
+        index = random.randint(0, len(selectable) - 1)
+        return selectable[index]
