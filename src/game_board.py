@@ -14,8 +14,8 @@ class GameBoard(object):
         self.__second_agent.agent_number = 1
         self.__VERTICAL_SIZE = 8
         self.__HORIZONTAL_SIZE = 8
-        self.__reversi_board = np.arange(self.__VERTICAL_SIZE * self.__HORIZONTAL_SIZE).reshape(self.__VERTICAL_SIZE,
-                                                                                                self.__HORIZONTAL_SIZE)
+        self.__reversi_board = np.zeros(self.__VERTICAL_SIZE * self.__HORIZONTAL_SIZE, dtype=np.int)\
+            .reshape(self.__VERTICAL_SIZE, self.__HORIZONTAL_SIZE)
         self.__is_game_over = 0
         self.__turn_agent_number = 0
 
