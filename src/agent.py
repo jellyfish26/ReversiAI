@@ -107,7 +107,7 @@ class GABoardAgent(Agent, ABC):
         super().__init__("learning", False)
         self.__evaluation_board = np.zeros(8 * 8)
 
-    def generate_random_evaluation_board(self):
+    def set_random_evaluation_board(self):
         for index in range(0, 8 * 8):
             self.__evaluation_board[index] = random.randint(-15, 15)
 
@@ -167,5 +167,15 @@ class GABoardAgent(Agent, ABC):
     def receive_game_end_signal(self):
         pass
 
+    def __get_evaluation_value(self, vertical_index, horizontal_index):
+        return self.__evaluation_board[8 * vertical_index + horizontal_index]
+
     def next_step(self):
-        pass
+        selectable_cells = self.belong_game_board.get_selectable_cells(self.agent_number)
+        ret = selectable_cells[0]
+        now_evaluation_value = self.__get_evaluation_value(ret[0], ret[1])
+        for explore in selectable_cells:
+            if now_evaluation_value < self.__get_evaluation_value(explore[0], explore[1]):
+                ret = explore
+                now_evaluation_value = self.__get_evaluation_value(explore[0], explore[1])
+        return ret
