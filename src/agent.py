@@ -2,6 +2,8 @@ from abc import ABCMeta, abstractmethod, ABC
 import control_panel
 import game_board
 import random
+import numpy as np
+import copy
 
 
 class Agent(metaclass=ABCMeta):
@@ -100,9 +102,64 @@ class RandomAgent(Agent, ABC):
 
 
 # Learning the board
-class GALearningBoardAgent(Agent, ABC):
-    def __init__(self, agent_name):
-        super().__init__(agent_name, False)
+class GABoardAgent(Agent, ABC):
+    def __init__(self):
+        super().__init__("learning", False)
+        self.__evaluation_board = np.zeros(8 * 8)
+
+    def generate_random_evaluation_board(self):
+        for index in range(0, 8 * 8):
+            self.__evaluation_board[index] = random.randint(-15, 15)
+
+    def cross_over_one_point(self, another_parent):
+        if not isinstance(another_parent, GABoardAgent):
+            raise Exception("this method same class as the argument")
+        divide_index = random.randint(0, 8 * 8 - 1)
+        start_this = random.randint(0, 1)
+        ret = GABoardAgent()
+        for index in range(0, 8 * 8):
+            check = start_this
+            if index >= divide_index:
+                check = check ^ 1
+            if check == 0:
+                ret.__evaluation_board[index] = self.__evaluation_board[index]
+            else:
+                ret.__evaluation_board[index] = another_parent.__evaluation_board[index]
+        return ret
+
+    def cross_over_uniform(self, another_parent):
+        if not isinstance(another_parent, GABoardAgent):
+            raise Exception("this method same class as the argument")
+        ret = GABoardAgent()
+        for index in range(0, 8 * 8):
+            select_parent = random.randint(0, 1)
+            if select_parent == 0:
+                ret.__evaluation_board[index] = self.__evaluation_board[index]
+            else:
+                ret.__evaluation_board[index] = another_parent.__evaluation_board[index]
+        return ret
+
+    def normal_mutation(self):
+        ret = GABoardAgent()
+        ret.__evaluation_board = copy.deepcopy(self.__evaluation_board)
+
+        def update(index):
+            nonlocal ret
+            before_value = self.__evaluation_board[index]
+            ret.__evaluation_board[index] = random.randint(-before_value + 5, before_value + 5)
+
+        update(random.randint(0, 8 * 4 - 1))
+        update(random.randint(8 * 4, 8 * 8 - 1))
+        return ret
+
+    def plus_mutation(self):
+        ret = GABoardAgent()
+        ret.__evaluation_board = copy.deepcopy(self.__evaluation_board)
+        for index in range(0, 8 * 8):
+            is_plus = random.randint(0, 1)
+            if is_plus == 1:
+                ret.__evaluation_board[index] += random.randint(0, 25)
+        return ret
 
     def receive_update_signal(self):
         pass

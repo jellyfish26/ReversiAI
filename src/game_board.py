@@ -18,7 +18,7 @@ class GameBoard(object):
         self.__HORIZONTAL_SIZE = 8
         self.__reversi_board = np.zeros(self.__VERTICAL_SIZE * self.__HORIZONTAL_SIZE, dtype=np.int)\
             .reshape(self.__VERTICAL_SIZE, self.__HORIZONTAL_SIZE)
-        self.__is_game_over = 0
+        self.__is_game_end = 0
         self.__turn_agent_number = 0
 
     def __init_board(self):
@@ -90,20 +90,20 @@ class GameBoard(object):
         return ret
 
     # white win = -1, black win = 1, draw = 2, nothing = 0
-    def check_game_over(self):
-        if self.__is_game_over != 0:
-            return self.__is_game_over
+    def check_game_end(self):
+        if self.__is_game_end != 0:
+            return self.__is_game_end
         if len(self.get_selectable_cells(1)) != 0 or len(self.get_selectable_cells(-1)) != 0:
             return 0
         white_stones = self.count_stones(-1)
         black_stones = self.count_stones(1)
         if white_stones == black_stones:
-            self.__is_game_over = 2
+            self.__is_game_end = 2
         elif white_stones < black_stones:
-            self.__is_game_over = -1
+            self.__is_game_end = -1
         else:
-            self.__is_game_over = 1
-        return self.__is_game_over
+            self.__is_game_end = 1
+        return self.__is_game_end
 
     def put_stone(self, vertical_index, horizontal_index, agent_number):
         replace_cells = self.__get_reverse_cells(vertical_index, horizontal_index, agent_number)
@@ -115,13 +115,12 @@ class GameBoard(object):
         self.__init_board()
         self.__first_agent.receive_update_signal()
         self.__second_agent.receive_update_signal()
-        while self.check_game_over() == 0:
+        while self.check_game_end() == 0:
             if (not self.__first_agent.is_running) or (not self.__second_agent.is_running):
                 break
             if len(self.get_selectable_cells(self.__turn_agent_number)) == 0:
                 self.__turn_agent_number *= -1
                 continue
-            select_cell = []
             if self.__turn_agent_number == -1:
                 select_cell = self.__first_agent.next_step()
             else:
