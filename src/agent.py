@@ -86,8 +86,8 @@ class HumanAgent(Agent):
 
 
 class RandomAgent(Agent, ABC):
-    def __init__(self, agent_name):
-        super().__init__(agent_name, False)
+    def __init__(self):
+        super().__init__("random", False)
 
     def receive_update_signal(self):
         pass
@@ -145,8 +145,8 @@ class GABoardAgent(Agent, ABC):
 
         def update(index):
             nonlocal ret
-            before_value = self.__evaluation_board[index]
-            ret.__evaluation_board[index] = random.randint(-before_value + 5, before_value + 5)
+            before_value = abs(self.__evaluation_board[index])
+            ret.__evaluation_board[index] = random.randint(-before_value - 5, before_value + 5)
 
         update(random.randint(0, 8 * 4 - 1))
         update(random.randint(8 * 4, 8 * 8 - 1))
