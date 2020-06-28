@@ -118,6 +118,9 @@ class GameBoard(object):
         while self.check_game_over() == 0:
             if (not self.__first_agent.is_running) or (not self.__second_agent.is_running):
                 break
+            if len(self.get_selectable_cells(self.__turn_agent_number)) == 0:
+                self.__turn_agent_number *= -1
+                continue
             select_cell = []
             if self.__turn_agent_number == -1:
                 select_cell = self.__first_agent.next_step()
