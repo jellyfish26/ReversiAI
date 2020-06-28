@@ -179,3 +179,9 @@ class GABoardAgent(Agent, ABC):
                 ret = explore
                 now_evaluation_value = self.__get_evaluation_value(explore[0], explore[1])
         return ret
+
+    def save_evaluation_board(self, file_path):
+        np.save(file_path, self.__evaluation_board)
+
+    def load_evaluation_board(self, file_path):
+        self.__evaluation_board = np.load(file_path)
