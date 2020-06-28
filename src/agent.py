@@ -28,7 +28,11 @@ class Agent(metaclass=ABCMeta):
         self.__belong_game_board = value
 
     @abstractmethod
-    def accept_update(self):
+    def receive_update_signal(self):
+        pass
+
+    @abstractmethod
+    def receive_game_end_signal(self):
         pass
 
     # board Read Only
@@ -69,8 +73,11 @@ class HumanAgent(Agent):
     def __init__(self, agent_name):
         super().__init__(agent_name, True)
 
-    def accept_update(self):
+    def receive_update_signal(self):
         self.control_panel.update_board(self.belong_game_board.reversi_board)
+
+    def receive_game_end_signal(self):
+        pass
 
     def next_step(self):
         return self.control_panel.wait_choice_cell(self.belong_game_board.get_selectable_cells(self.agent_number))
@@ -80,10 +87,28 @@ class RandomAgent(Agent, ABC):
     def __init__(self, agent_name):
         super().__init__(agent_name, False)
 
-    def accept_update(self):
+    def receive_update_signal(self):
+        pass
+
+    def receive_game_end_signal(self):
         pass
 
     def next_step(self):
         selectable = self.belong_game_board.get_selectable_cells(self.agent_number)
         index = random.randint(0, len(selectable) - 1)
         return selectable[index]
+
+
+# Learning the board
+class GALearningBoardAgent(Agent, ABC):
+    def __init__(self, agent_name):
+        super().__init__(agent_name, False)
+
+    def receive_update_signal(self):
+        pass
+
+    def receive_game_end_signal(self):
+        pass
+
+    def next_step(self):
+        pass

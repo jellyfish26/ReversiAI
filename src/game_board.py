@@ -113,8 +113,8 @@ class GameBoard(object):
 
     def game_start(self):
         self.__init_board()
-        self.__first_agent.accept_update()
-        self.__second_agent.accept_update()
+        self.__first_agent.receive_update_signal()
+        self.__second_agent.receive_update_signal()
         while self.check_game_over() == 0:
             if (not self.__first_agent.is_running) or (not self.__second_agent.is_running):
                 break
@@ -127,8 +127,8 @@ class GameBoard(object):
             else:
                 select_cell = self.__second_agent.next_step()
             self.put_stone(select_cell[0], select_cell[1], self.__turn_agent_number)
-            self.__first_agent.accept_update()
-            self.__second_agent.accept_update()
+            self.__first_agent.receive_update_signal()
+            self.__second_agent.receive_update_signal()
             self.__turn_agent_number *= -1
 
     @property
