@@ -7,7 +7,7 @@ import tqdm
 class GALearn:
     def __init__(self, evolve_times):
         self.__NUMBER_INDIVIDUALS = 20  # more than 10
-        self.__NUMBER_BATTLES = 100
+        self.__NUMBER_BATTLES = 40
         self.__EVOLVE_TIMES = evolve_times
         self.__now_generation = []
         self.__progress_bar = None
@@ -24,6 +24,8 @@ class GALearn:
                 game.game_start()
                 self.__progress_bar.update(1)
                 if game.check_game_end() == -1:
+                    self.__now_generation[index][1] += 2
+                elif game.check_game_end() == 2:
                     self.__now_generation[index][1] += 1
 
     def __generation_sort(self):
@@ -46,6 +48,12 @@ class GALearn:
             else:
                 ret.append([select_elite.plus_mutation(), 0])
         self.__now_generation = ret
+
+    def __calc_generation_average(self):
+        ret = 0.0
+        for now in self.__now_generation:
+            ret += now[1]
+        return ret / self.__NUMBER_INDIVIDUALS
 
     def start(self, file_path, save_interval):
         for times in range(1, self.__EVOLVE_TIMES + 1):
