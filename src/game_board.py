@@ -99,7 +99,7 @@ class GameBoard(object):
         black_stones = self.count_stones(1)
         if white_stones == black_stones:
             self.__is_game_end = 2
-        elif white_stones < black_stones:
+        elif white_stones > black_stones:
             self.__is_game_end = -1
         else:
             self.__is_game_end = 1
