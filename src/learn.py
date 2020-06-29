@@ -66,13 +66,13 @@ class GALearn:
         np.save(file_path, np.array(self.__data_generation_average))
 
     def start(self, file_path, save_interval):
+        self.__progress_bar = tqdm.tqdm(total=self.__NUMBER_BATTLES * self.__NUMBER_INDIVIDUALS * self.__EVOLVE_TIMES)
+        self.__progress_bar.set_description('learning ' + str(self.__EVOLVE_TIMES) + ' generations...')
         for times in range(1, self.__EVOLVE_TIMES + 1):
-            self.__progress_bar = tqdm.tqdm(total=self.__NUMBER_BATTLES * self.__NUMBER_INDIVIDUALS)
-            self.__progress_bar.set_description('learning at generation ' + str(times))
             if times != 1:
                 self.__update_generation()
             self.__battle_random_agent()
             self.__data_generation_average.append(self.__calc_generation_average())
             if times % save_interval == 0:
                 self.__now_generation[0][0].save_evaluation_board(file_path + str(times))
-            self.__progress_bar.close()
+        self.__progress_bar.close()
