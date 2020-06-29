@@ -20,18 +20,19 @@ class GALearn:
 
     # calc expectation value
     def __battle_random_agent(self):
-        executor = concurrent.futures.ThreadPoolExecutor()
+        executor = concurrent.futures.ProcessPoolExecutor()
         for index in range(0, self.__NUMBER_INDIVIDUALS):
             waiting_queue = []
             for times in range(0, self.__NUMBER_BATTLES):
-                temp = agent.RandomAgent()
-                game = game_board.GameBoard(self.__now_generation[index][0], temp)
+                first = self.__now_generation[index][0].copy()
+                second = agent.RandomAgent()
+                game = game_board.GameBoard(first, second)
                 waiting_queue.append(executor.submit(game.game_start))
             for end_task in concurrent.futures.as_completed(waiting_queue):
                 self.__progress_bar.update(1)
-                if end_task == -1:
+                if end_task.result() == -1:
                     self.__now_generation[index][1] += 2
-                elif end_task == 2:
+                elif end_task.result() == 2:
                     self.__now_generation[index][1] += 1
         executor.shutdown()
 

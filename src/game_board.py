@@ -129,6 +129,7 @@ class GameBoard(object):
             self.__first_agent.receive_update_signal()
             self.__second_agent.receive_update_signal()
             self.__turn_agent_number *= -1
+        return self.check_game_end()
 
     @property
     def reversi_board(self):

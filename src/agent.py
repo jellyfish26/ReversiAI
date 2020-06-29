@@ -185,3 +185,6 @@ class GABoardAgent(Agent, ABC):
 
     def load_evaluation_board(self, file_path):
         self.__evaluation_board = np.load(file_path)
+
+    def copy(self):
+        return copy.deepcopy(self)
