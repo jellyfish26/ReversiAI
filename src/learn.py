@@ -2,6 +2,8 @@ import game_board
 import agent
 import random
 import tqdm
+import numpy as np
+import concurrent.futures
 
 
 class GALearn:
@@ -11,28 +13,32 @@ class GALearn:
         self.__EVOLVE_TIMES = evolve_times
         self.__now_generation = []
         self.__progress_bar = None
+        self.__data_generation_average = []
         for number in range(0, self.__NUMBER_INDIVIDUALS):
             self.__now_generation.append([agent.GABoardAgent(), 0])
             self.__now_generation[number][0].set_random_evaluation_board()
 
     # calc expectation value
     def __battle_random_agent(self):
+        executor = concurrent.futures.ThreadPoolExecutor()
         for index in range(0, self.__NUMBER_INDIVIDUALS):
+            waiting_queue = []
             for times in range(0, self.__NUMBER_BATTLES):
                 temp = agent.RandomAgent()
                 game = game_board.GameBoard(self.__now_generation[index][0], temp)
-                game.game_start()
+                waiting_queue.append(executor.submit(game.game_start))
+            for end_task in concurrent.futures.as_completed(waiting_queue):
                 self.__progress_bar.update(1)
-                if game.check_game_end() == -1:
+                if end_task == -1:
                     self.__now_generation[index][1] += 2
-                elif game.check_game_end() == 2:
+                elif end_task == 2:
                     self.__now_generation[index][1] += 1
+        executor.shutdown()
 
     def __generation_sort(self):
         self.__now_generation.sort(key=lambda x: x[1], reverse=True)
 
     def __update_generation(self):
-        self.__battle_random_agent()
         self.__generation_sort()
         ret = [[self.__now_generation[0][0], 0], [self.__now_generation[1][0], 0]]
         for times in range(2, self.__NUMBER_INDIVIDUALS):
@@ -55,11 +61,17 @@ class GALearn:
             ret += now[1]
         return ret / self.__NUMBER_INDIVIDUALS
 
+    def save_data_generation_average(self, file_path):
+        np.save(file_path, np.array(self.__data_generation_average))
+
     def start(self, file_path, save_interval):
         for times in range(1, self.__EVOLVE_TIMES + 1):
             self.__progress_bar = tqdm.tqdm(total=self.__NUMBER_BATTLES * self.__NUMBER_INDIVIDUALS)
             self.__progress_bar.set_description('learning at generation ' + str(times))
-            self.__update_generation()
+            if times != 1:
+                self.__update_generation()
+            self.__battle_random_agent()
+            self.__data_generation_average.append(self.__calc_generation_average())
             if times % save_interval == 0:
                 self.__now_generation[0][0].save_evaluation_board(file_path + str(times))
             self.__progress_bar.close()
