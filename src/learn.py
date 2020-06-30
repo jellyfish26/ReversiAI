@@ -39,8 +39,8 @@ class GALearn:
     def __generation_sort(self):
         self.__now_generation.sort(key=lambda x: x[1], reverse=True)
 
+    # before exec generation_sort method
     def __update_generation(self):
-        self.__generation_sort()
         ret = [[self.__now_generation[0][0], 0], [self.__now_generation[1][0], 0]]
         for times in range(2, self.__NUMBER_INDIVIDUALS):
             select_elite = self.__now_generation[random.randint(0, 1)][0]
@@ -52,8 +52,10 @@ class GALearn:
                 ret.append([select_elite.cross_over_uniform(select_another), 0])
             elif probability < 90:
                 ret.append([select_elite.normal_mutation(), 0])
+            elif probability < 95:
+                ret.append([select_elite.plus_mutation(1, 25), 0])
             else:
-                ret.append([select_elite.plus_mutation(), 0])
+                ret.append([select_elite.plus_mutation(-15, -1), 0])
         self.__now_generation = ret
 
     def __calc_generation_average(self):
@@ -72,6 +74,7 @@ class GALearn:
             if times != 1:
                 self.__update_generation()
             self.__battle_random_agent()
+            self.__generation_sort()
             self.__data_generation_average.append(self.__calc_generation_average())
             if times % save_interval == 0:
                 self.__now_generation[0][0].save_evaluation_board(file_path + str(times))

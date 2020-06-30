@@ -9,6 +9,7 @@ import copy
 class Agent(metaclass=ABCMeta):
     def __init__(self, agent_name, is_lunch_control_panel):
         self.__belong_game_board = None
+        self.__agent_name = agent_name
         self.__is_lunch_control_panel = is_lunch_control_panel
         self.__agent_number = 0
         if is_lunch_control_panel:
@@ -70,6 +71,13 @@ class Agent(metaclass=ABCMeta):
             return self.__control_panel.is_running
         return True
 
+    @property
+    def agent_name(self):
+        return self.__agent_number
+
+    def copy(self):
+        return copy.deepcopy(self)
+
 
 class HumanAgent(Agent):
     def __init__(self, agent_name):
@@ -85,7 +93,7 @@ class HumanAgent(Agent):
         return self.control_panel.wait_choice_cell(self.belong_game_board.get_selectable_cells(self.agent_number))
 
 
-class RandomAgent(Agent, ABC):
+class RandomAgent(Agent):
     def __init__(self):
         super().__init__("random", False)
 
@@ -102,10 +110,16 @@ class RandomAgent(Agent, ABC):
 
 
 # Learning the board
-class GABoardAgent(Agent, ABC):
+class GABoardAgent(Agent):
     def __init__(self):
         super().__init__("learning", False)
         self.__evaluation_board = np.zeros(8 * 8)
+
+    def receive_game_end_signal(self):
+        pass
+
+    def receive_update_signal(self):
+        pass
 
     def set_random_evaluation_board(self):
         for index in range(0, 8 * 8):
@@ -152,20 +166,14 @@ class GABoardAgent(Agent, ABC):
         update(random.randint(8 * 4, 8 * 8 - 1))
         return ret
 
-    def plus_mutation(self):
+    def plus_mutation(self, lower, upper):
         ret = GABoardAgent()
         ret.__evaluation_board = copy.deepcopy(self.__evaluation_board)
         for index in range(0, 8 * 8):
             is_plus = random.randint(0, 1)
             if is_plus == 1:
-                ret.__evaluation_board[index] += random.randint(0, 25)
+                ret.__evaluation_board[index] += random.randint(lower, upper)
         return ret
-
-    def receive_update_signal(self):
-        pass
-
-    def receive_game_end_signal(self):
-        pass
 
     def __get_evaluation_value(self, vertical_index, horizontal_index):
         return self.__evaluation_board[8 * vertical_index + horizontal_index]
@@ -186,5 +194,31 @@ class GABoardAgent(Agent, ABC):
     def load_evaluation_board(self, file_path):
         self.__evaluation_board = np.load(file_path)
 
-    def copy(self):
-        return copy.deepcopy(self)
+
+class QLeaningAgent(Agent):
+    def __init__(self, is_learning):
+        super().__init__("QLeaning", False)
+        self.__ALPHA = 0.1
+        self.__GAMMA = 0.9
+        self.__is_learning = is_learning
+        self.__before_feature_vector = np.zeros(8 * 8 * 3)
+        self.__now_feature_vector = np.zeros(8 * 8 * 3)
+        self.__gravity_vector = np.zeros(8 * 8 * 3)
+
+    def calc_now_q_value(self):
+        ret = 0
+        for feature, gravity in zip(self.__now_feature_vector, self.__gravity_vector):
+            ret += feature * gravity
+        return ret
+
+    def calc_before_q_value(self):
+        pass
+
+    def receive_update_signal(self):
+        pass
+
+    def receive_game_end_signal(self):
+        pass
+
+    def next_step(self):
+        pass
