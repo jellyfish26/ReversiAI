@@ -28,7 +28,7 @@ def battle_start(times, first_agent, second_agent):
 
 if __name__ == '__main__':
     trials = int(input())
-    one_agent = agent.GABoardAgent()
-    one_agent.load_evaluation_board("../data/2020-06-30-GA-4/GA-250.npy")
+    one_agent = agent.QLeaningAgent(False)
+    one_agent.load_weight_vector("../data/2020-06-30-Q-4/Q-2000.npy")
     two_agent = agent.RandomAgent()
     battle_start(trials, one_agent, two_agent)

@@ -91,22 +91,19 @@ class QLearning:
     def save_data_trajectory(self, file_path):
         np.save(file_path, np.array(self.__learning_data))
 
-    def start(self, file_path, save_interval):
+    def start(self, file_path, save_interval, is_first, learning_partner):
         self.__progress_bar = tqdm.tqdm(total=self.__EVOLVE_TIMES)
         self.__progress_bar.set_description('learning ' + str(self.__EVOLVE_TIMES) + ' times...')
         for times in range(1, self.__EVOLVE_TIMES + 1):
-            second = agent.RandomAgent()
-            select_number = random.randint(0, 1)
-            if select_number == 0:
+            second = learning_partner.copy()
+            if is_first:
                 game = GameBoard(self.__learning_agent, second)
             else:
                 game = GameBoard(second, self.__learning_agent)
             game.game_start()
-            if select_number != 0:
-                self.__learning_data.append([game.count_stones(-1), game.count_stones(1)])
-            else:
-                self.__learning_data.append([game.count_stones(1), game.count_stones(-1)])
+            self.__learning_data.append([game.count_stones(-1), game.count_stones(1)])
             if times % save_interval == 0:
                 self.__learning_agent.save_weight_vector(file_path + str(times))
             self.__progress_bar.update(1)
+            self.__learning_agent.time_increment()
         self.__progress_bar.close()

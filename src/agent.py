@@ -199,13 +199,14 @@ class GABoardAgent(Agent):
 class QLeaningAgent(Agent):
     def __init__(self, is_learning):
         super().__init__("QLearning", False)
-        self.__ALPHA = 0.1
+        self.__ALPHA = 0.025
         self.__GAMMA = 0.9
+        self.__TEMPERATURE = 0.08
         self.__is_learning = is_learning
         self.__now_time = 1
         # plus one is endgame flag (value)
         self.__now_feature_vector = np.zeros(8 * 8 * 3 + 1)
-        self.__weight_vector = np.zeros(8 * 8 * 3 + 1)
+        self.__weight_vector = np.full(8 * 8 * 3 + 1, 0.05)
 
     @staticmethod
     def __calc_index_from_board_index(agent_number, vertical_index, horizontal_index):
@@ -240,9 +241,6 @@ class QLeaningAgent(Agent):
                     )
                 ] = 1
         return ret
-
-    def __temperature_function(self):
-        return 1 / math.log(self.__now_time + 1.1)
 
     @staticmethod
     def __calc_custom_q_value(gravity_vector, feature_vector):
@@ -279,7 +277,7 @@ class QLeaningAgent(Agent):
 
     # after exec next step (exec in receive?*_signal)
     def __update_gravity_vector(self, reward, is_game_end):
-        max_value = -1
+        max_value = 0
         enemy_selectable = self.belong_game_board.get_selectable_cells(self.agent_number * -1)
         next_feature_vector = copy.deepcopy(self.__now_feature_vector)
 
@@ -331,21 +329,25 @@ class QLeaningAgent(Agent):
         def calc(inner_index):
             nonlocal max_value, now_value, reward
             inner_value = (reward + self.__GAMMA * max_value - now_value)
-            inner_value *= (self.__weight_vector[inner_index] * self.__now_feature_vector[inner_index])
+            inner_value *= self.__now_feature_vector[inner_index]
             return self.__weight_vector[inner_index] + self.__ALPHA * inner_value
 
+        np.set_printoptions(suppress=True)
+        next_weight_vector = np.zeros(8 * 8 * 3 + 1)
+
         for index in range(0, 8 * 8 * 3 + 1):
-            self.__weight_vector[index] = calc(index)
+            next_weight_vector[index] = calc(index)
+        self.__weight_vector = next_weight_vector
 
     def __get_boltzmann_select(self):
         selectable_cells = self.belong_game_board.get_selectable_cells(self.agent_number)
-        base = 0
+        base_value = 0
         for cell in selectable_cells:
-            base += self.__calc_action_q_value(cell) / self.__temperature_function()
+            base_value += math.exp(self.__calc_action_q_value(cell) / self.__TEMPERATURE)
         sum_value = 0
         probability = []
         for cell in selectable_cells:
-            sum_value += self.__calc_action_q_value(cell) / self.__temperature_function()
+            sum_value += (math.exp(self.__calc_action_q_value(cell) / self.__TEMPERATURE)) / base_value
             probability.append(sum_value)
         probability[-1] = 1
         select_value = random.random()
@@ -369,29 +371,35 @@ class QLeaningAgent(Agent):
         self.__now_time += 1
 
     def receive_update_signal(self):
+        if not self.__is_learning:
+            return
         if self.belong_game_board.turn_agent_number == 0:
             self.__now_feature_vector = self.__convert_board_to_feature_vector(self.belong_game_board.reversi_board)
             return
-        if self.agent_number == self.belong_game_board.turn_agent_number:
+        if self.agent_number != self.belong_game_board.turn_agent_number:
             return
         self.__now_feature_vector = self.__convert_board_to_feature_vector(self.belong_game_board.reversi_board)
         self.__update_gravity_vector(0, False)
 
-    # 100, 0, -100
+    # -1, 0, 1
     def receive_game_end_signal(self):
+        if not self.__is_learning:
+            return
         self.__now_feature_vector = self.__convert_board_to_feature_vector(self.belong_game_board.reversi_board)
         result = self.belong_game_board.check_game_end()
         if result == 2:
             result = 0
-        if self.agent_number == -1:
-            result *= -1
-        result *= 100
+        # if self.agent_number == -1: thinking...
+        #    result *= -1
+        result *= 10
         self.__update_gravity_vector(result, True)
 
     def next_step(self):
         if self.__is_learning:
+            self.__now_feature_vector = self.__convert_board_to_feature_vector(self.belong_game_board.reversi_board)
             return self.__get_boltzmann_select()
         else:
+            self.__now_feature_vector = self.__convert_board_to_feature_vector(self.belong_game_board.reversi_board)
             return self.__get_best_move()
 
     def save_weight_vector(self, file_path):
