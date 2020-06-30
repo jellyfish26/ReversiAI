@@ -19,7 +19,6 @@ class GameBoard(object):
         self.__turn_agent_number = 0
 
     def __init_board(self):
-        self.__turn_agent_number = -1 if random.randint(0, 2) == 0 else 1
         self.__reversi_board[3][3] = 1
         self.__reversi_board[3][4] = -1
         self.__reversi_board[4][3] = -1
@@ -27,8 +26,8 @@ class GameBoard(object):
 
     @staticmethod
     def get_reverse_cells_custom_board(vertical_index, horizontal_index, agent_number, custom_reversi_board):
-        if (vertical_index < 0 or vertical_index >= 8) and (
-                horizontal_index < 0 or vertical_index >= 8):
+        if (vertical_index < 0 or vertical_index >= 8) or (
+                horizontal_index < 0 or horizontal_index >= 8):
             raise IndexError("Reference outside of the board.")
         if abs(agent_number) != 1:
             raise Exception("Select 1 or -1 for Agent Number.(-1: white, 1: black)")
@@ -76,7 +75,7 @@ class GameBoard(object):
             raise Exception("Select 1 or -1 for Agent Number.(-1: white, 1: black)")
         ret = []
         for vertical_index in range(0, 8):
-            for horizontal_index in range(0, 9):
+            for horizontal_index in range(0, 8):
                 if len(GameBoard.get_reverse_cells_custom_board(vertical_index, horizontal_index,
                                                                 agent_number, custom_reversi_board)) != 0:
                     ret.append((vertical_index, horizontal_index))
@@ -121,6 +120,7 @@ class GameBoard(object):
         self.__init_board()
         self.__first_agent.receive_update_signal()
         self.__second_agent.receive_update_signal()
+        self.__turn_agent_number = -1 if random.randint(0, 2) == 0 else 1
         while self.check_game_end() == 0:
             if (not self.__first_agent.is_running) or (not self.__second_agent.is_running):
                 break
@@ -135,8 +135,14 @@ class GameBoard(object):
             self.__first_agent.receive_update_signal()
             self.__second_agent.receive_update_signal()
             self.__turn_agent_number *= -1
+        self.__first_agent.receive_game_end_signal()
+        self.__second_agent.receive_game_end_signal()
         return self.check_game_end()
 
     @property
     def reversi_board(self):
         return self.__reversi_board
+
+    @property
+    def turn_agent_number(self):
+        return self.__turn_agent_number

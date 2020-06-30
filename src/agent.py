@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod, ABC
-from control_panel import ControlPanel
-from game_board import GameBoard
+import control_panel
+import game_board
 import random
 import numpy as np
 import copy
@@ -14,7 +14,7 @@ class Agent(metaclass=ABCMeta):
         self.__is_lunch_control_panel = is_lunch_control_panel
         self.__agent_number = 0
         if is_lunch_control_panel:
-            self.__control_panel = ControlPanel(agent_name)
+            self.__control_panel = control_panel.ControlPanel(agent_name)
             self.__control_panel.start()
             while not self.__control_panel.is_ready:
                 pass
@@ -27,7 +27,7 @@ class Agent(metaclass=ABCMeta):
 
     @belong_game_board.setter
     def belong_game_board(self, value):
-        if not isinstance(value, GameBoard):
+        if not isinstance(value, game_board.GameBoard):
             raise Exception("Must set GameBoard Class")
         self.__belong_game_board = value
 
@@ -202,25 +202,14 @@ class QLeaningAgent(Agent):
         self.__ALPHA = 0.1
         self.__GAMMA = 0.9
         self.__is_learning = is_learning
+        self.__now_time = 1
         # plus one is endgame flag (value)
-        self.__before_feature_vector = np.zeros(8 * 8 * 3 + 1)
         self.__now_feature_vector = np.zeros(8 * 8 * 3 + 1)
         self.__weight_vector = np.zeros(8 * 8 * 3 + 1)
 
     @staticmethod
     def __calc_index_from_board_index(agent_number, vertical_index, horizontal_index):
-        return (agent_number + 1) * 64 + vertical_index * 8 + horizontal_index
-
-    @staticmethod
-    def __temperature_function(times):
-        return 1 / math.log(times + 1, 3)
-
-    @staticmethod
-    def __calc_custom_q_value(gravity_vector, feature_vector):
-        ret = 0
-        for gravity, feature in zip(gravity_vector, feature_vector):
-            ret += feature * gravity
-        return ret
+        return int((agent_number + 1) * 64 + vertical_index * 8 + horizontal_index)
 
     @staticmethod
     def __convert_feature_vector_to_board(feature_vector):
@@ -238,85 +227,175 @@ class QLeaningAgent(Agent):
                         ret[vertical_index][horizontal_index] = agent_number
         return ret
 
+    @staticmethod
+    def __convert_board_to_feature_vector(board):
+        ret = np.zeros(8 * 8 * 3 + 1)
+        for vertical_index in range(0, 8):
+            for horizontal_index in range(0, 8):
+                ret[
+                    QLeaningAgent.__calc_index_from_board_index(
+                        board[vertical_index][horizontal_index],
+                        vertical_index,
+                        horizontal_index
+                    )
+                ] = 1
+        return ret
+
+    def __temperature_function(self):
+        return 1 / math.log(self.__now_time + 1.1)
+
+    @staticmethod
+    def __calc_custom_q_value(gravity_vector, feature_vector):
+        ret = 0
+        for gravity, feature in zip(gravity_vector, feature_vector):
+            ret += feature * gravity
+        return ret
+
+    def __calc_custom_q_value_not_change(self, agent_number, action, weight_vector, feature_vector):
+        change_index = (
+            self.__calc_index_from_board_index(agent_number, action[0], action[1]),
+            self.__calc_index_from_board_index(0, action[0], action[1])
+        )
+        feature_vector[change_index[0]] = 1
+        feature_vector[change_index[1]] = 0
+        ret = self.__calc_custom_q_value(weight_vector, feature_vector)
+        feature_vector[change_index[0]] = 0
+        feature_vector[change_index[1]] = 1
+        return ret
+
+    def __calc_game_end_q_value_not_change(self, weight_vector, feature_vector):
+        feature_vector[8 * 8 * 3] = 1
+        ret = self.__calc_custom_q_value(weight_vector, feature_vector)
+        feature_vector[8 * 8 * 3] = 0
+        return ret
+
     # action require tuple
     def __calc_action_q_value(self, action):
-        action_feature_vector = copy.deepcopy(self.__now_feature_vector)
-        action_feature_vector[self.__calc_index_from_board_index(self.agent_number, action[0], action[1])] = 1
-        return self.__calc_custom_q_value(self.__weight_vector, action_feature_vector)
+        return self.__calc_custom_q_value_not_change(self.agent_number, action, self.__weight_vector,
+                                                     self.__now_feature_vector)
 
     def calc_now_q_value(self):
         return self.__calc_custom_q_value(self.__weight_vector, self.__now_feature_vector)
 
-    def __calc_custom_q_value_not_change(self, index, weight_vector, feature_vector):
-        feature_vector[index] = 1
-        ret = self.__calc_custom_q_value(weight_vector, feature_vector)
-        feature_vector[index] = 0
-        return ret
-
     # after exec next step (exec in receive?*_signal)
-    def __update_gravity_vector(self, reward):
-        max_value = -100
+    def __update_gravity_vector(self, reward, is_game_end):
+        max_value = -1
         enemy_selectable = self.belong_game_board.get_selectable_cells(self.agent_number * -1)
-        next_feature_vector = copy.deepcopy(self.__weight_vector)
+        next_feature_vector = copy.deepcopy(self.__now_feature_vector)
 
-        def update_max_value(inner_index):
+        def update_max_value(agent_number, action):
             nonlocal max_value, next_feature_vector
             max_value = max(
                 max_value,
                 self.__calc_custom_q_value_not_change(
-                    inner_index,
+                    agent_number,
+                    action,
                     self.__weight_vector,
                     next_feature_vector
                 )
             )
 
-        if len(enemy_selectable) == 0:
-            update_max_value(8 * 8 * 3)
+        if is_game_end:
+            max_value = max(
+                max_value,
+                self.__calc_game_end_q_value_not_change(
+                    self.__weight_vector,
+                    next_feature_vector
+                )
+            )
         else:
             for enemy in enemy_selectable:
-                change_cell_enemy_index = self.__calc_index_from_board_index(self.agent_number * -1, enemy[0], enemy[1])
-                next_feature_vector[change_cell_enemy_index] = 1
-                next_my_selectable = GameBoard.get_selectable_cells_custom_board(
+                change_cell_enemy_index = (
+                    self.__calc_index_from_board_index(self.agent_number * -1, enemy[0], enemy[1]),
+                    self.__calc_index_from_board_index(0, enemy[0], enemy[1]),
+                )
+                next_feature_vector[change_cell_enemy_index[0]] = 1
+                next_feature_vector[change_cell_enemy_index[1]] = 0
+                next_my_selectable = game_board.GameBoard.get_selectable_cells_custom_board(
                     self.agent_number,
                     self.__convert_feature_vector_to_board(next_feature_vector)
                 )
-                if len(next_my_selectable) == 0:
-                    update_max_value(8 * 8 * 3)
-                else:
-                    for my in next_my_selectable:
-                        update_max_value(self.__calc_index_from_board_index(self.agent_number, my[0], my[1]))
-                next_feature_vector[change_cell_enemy_index] = 0
+                for my in next_my_selectable:
+                    update_max_value(self.agent_number, my)
+                next_feature_vector[change_cell_enemy_index[0]] = 0
+                next_feature_vector[change_cell_enemy_index[1]] = 1
+            if len(enemy_selectable) == 0:
+                next_my_selectable = game_board.GameBoard.get_selectable_cells_custom_board(
+                    self.agent_number,
+                    self.__convert_feature_vector_to_board(next_feature_vector)
+                )
+                for my in next_my_selectable:
+                    update_max_value(self.agent_number, my)
         now_value = self.calc_now_q_value()
 
         def calc(inner_index):
             nonlocal max_value, now_value, reward
             inner_value = (reward + self.__GAMMA * max_value - now_value)
-            inner_value *= (self.__weight_vector[inner_index] * self.__weight_vector[inner_index])
+            inner_value *= (self.__weight_vector[inner_index] * self.__now_feature_vector[inner_index])
             return self.__weight_vector[inner_index] + self.__ALPHA * inner_value
 
         for index in range(0, 8 * 8 * 3 + 1):
             self.__weight_vector[index] = calc(index)
+
+    def __get_boltzmann_select(self):
+        selectable_cells = self.belong_game_board.get_selectable_cells(self.agent_number)
+        base = 0
+        for cell in selectable_cells:
+            base += self.__calc_action_q_value(cell) / self.__temperature_function()
+        sum_value = 0
+        probability = []
+        for cell in selectable_cells:
+            sum_value += self.__calc_action_q_value(cell) / self.__temperature_function()
+            probability.append(sum_value)
+        probability[-1] = 1
+        select_value = random.random()
+        for index, value in enumerate(probability):
+            if probability[index] < select_value:
+                return selectable_cells[index]
+        return selectable_cells[-1]
 
     def __get_best_move(self):
         selectable_cells = self.belong_game_board.get_selectable_cells(self.agent_number)
         ret = selectable_cells[0]
         max_value = -100
         for cell in selectable_cells:
-            now_value = self.__calc_custom_q_value_not_change(
-                self.__calc_index_from_board_index(self.agent_number, cell[0], cell[1]),
-                self.__weight_vector,
-                self.__now_feature_vector
-            )
+            now_value = self.__calc_action_q_value(cell)
             if max_value < now_value:
                 ret = cell
                 max_value = now_value
         return ret
 
-    def receive_update_signal(self):
-        pass
+    def time_increment(self):
+        self.__now_time += 1
 
+    def receive_update_signal(self):
+        if self.belong_game_board.turn_agent_number == 0:
+            self.__now_feature_vector = self.__convert_board_to_feature_vector(self.belong_game_board.reversi_board)
+            return
+        if self.agent_number == self.belong_game_board.turn_agent_number:
+            return
+        self.__now_feature_vector = self.__convert_board_to_feature_vector(self.belong_game_board.reversi_board)
+        self.__update_gravity_vector(0, False)
+
+    # 100, 0, -100
     def receive_game_end_signal(self):
-        pass
+        self.__now_feature_vector = self.__convert_board_to_feature_vector(self.belong_game_board.reversi_board)
+        result = self.belong_game_board.check_game_end()
+        if result == 2:
+            result = 0
+        if self.agent_number == -1:
+            result *= -1
+        result *= 100
+        self.__update_gravity_vector(result, True)
 
     def next_step(self):
-        pass
+        if self.__is_learning:
+            return self.__get_boltzmann_select()
+        else:
+            return self.__get_best_move()
+
+    def save_weight_vector(self, file_path):
+        np.save(file_path, self.__weight_vector)
+
+    def load_weight_vector(self, file_path):
+        self.__weight_vector = np.load(file_path)

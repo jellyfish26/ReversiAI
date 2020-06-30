@@ -1,4 +1,4 @@
-import game_board
+from game_board import GameBoard
 import agent
 import random
 import tqdm
@@ -6,7 +6,7 @@ import numpy as np
 import concurrent.futures
 
 
-class GALearn:
+class GALearning:
     def __init__(self, evolve_times):
         self.__NUMBER_INDIVIDUALS = 20  # more than 10
         self.__NUMBER_BATTLES = 40
@@ -26,7 +26,7 @@ class GALearn:
             for times in range(0, self.__NUMBER_BATTLES):
                 first = self.__now_generation[index][0].copy()
                 second = agent.RandomAgent()
-                game = game_board.GameBoard(first, second)
+                game = GameBoard(first, second)
                 waiting_queue.append(executor.submit(game.game_start))
             for end_task in concurrent.futures.as_completed(waiting_queue):
                 self.__progress_bar.update(1)
@@ -78,4 +78,35 @@ class GALearn:
             self.__data_generation_average.append(self.__calc_generation_average())
             if times % save_interval == 0:
                 self.__now_generation[0][0].save_evaluation_board(file_path + str(times))
+        self.__progress_bar.close()
+
+
+class QLearning:
+    def __init__(self, evolve_times):
+        self.__EVOLVE_TIMES = evolve_times
+        self.__progress_bar = None
+        self.__learning_agent = agent.QLeaningAgent(True)
+        self.__learning_data = []
+
+    def save_data_trajectory(self, file_path):
+        np.save(file_path, np.array(self.__learning_data))
+
+    def start(self, file_path, save_interval):
+        self.__progress_bar = tqdm.tqdm(total=self.__EVOLVE_TIMES)
+        self.__progress_bar.set_description('learning ' + str(self.__EVOLVE_TIMES) + ' times...')
+        for times in range(1, self.__EVOLVE_TIMES + 1):
+            second = agent.RandomAgent()
+            select_number = random.randint(0, 1)
+            if select_number == 0:
+                game = GameBoard(self.__learning_agent, second)
+            else:
+                game = GameBoard(second, self.__learning_agent)
+            game.game_start()
+            if select_number != 0:
+                self.__learning_data.append([game.count_stones(-1), game.count_stones(1)])
+            else:
+                self.__learning_data.append([game.count_stones(1), game.count_stones(-1)])
+            if times % save_interval == 0:
+                self.__learning_agent.save_weight_vector(file_path + str(times))
+            self.__progress_bar.update(1)
         self.__progress_bar.close()
