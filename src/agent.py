@@ -73,7 +73,7 @@ class Agent(metaclass=ABCMeta):
 
     @property
     def agent_name(self):
-        return self.__agent_number
+        return self.__agent_name
 
     def copy(self):
         return copy.deepcopy(self)
@@ -112,7 +112,7 @@ class RandomAgent(Agent):
 # Learning the board
 class GABoardAgent(Agent):
     def __init__(self):
-        super().__init__("learning", False)
+        super().__init__("GALearning", False)
         self.__evaluation_board = np.zeros(8 * 8)
 
     def receive_game_end_signal(self):
@@ -197,13 +197,16 @@ class GABoardAgent(Agent):
 
 class QLeaningAgent(Agent):
     def __init__(self, is_learning):
-        super().__init__("QLeaning", False)
+        super().__init__("QLearning", False)
         self.__ALPHA = 0.1
         self.__GAMMA = 0.9
         self.__is_learning = is_learning
         self.__before_feature_vector = np.zeros(8 * 8 * 3)
         self.__now_feature_vector = np.zeros(8 * 8 * 3)
         self.__gravity_vector = np.zeros(8 * 8 * 3)
+
+    def __temperature_function(self, times):
+        pass
 
     def calc_now_q_value(self):
         ret = 0
