@@ -14,10 +14,7 @@ class GameBoard(object):
         self.__second_agent = second_agent
         self.__second_agent.belong_game_board = self
         self.__second_agent.agent_number = 1
-        self.__VERTICAL_SIZE = 8
-        self.__HORIZONTAL_SIZE = 8
-        self.__reversi_board = np.zeros(self.__VERTICAL_SIZE * self.__HORIZONTAL_SIZE, dtype=np.int)\
-            .reshape(self.__VERTICAL_SIZE, self.__HORIZONTAL_SIZE)
+        self.__reversi_board = np.zeros(8 * 8).reshape(8, 8)
         self.__is_game_end = 0
         self.__turn_agent_number = 0
 
@@ -28,21 +25,22 @@ class GameBoard(object):
         self.__reversi_board[4][3] = -1
         self.__reversi_board[4][4] = 1
 
-    def __get_reverse_cells(self, vertical_index, horizontal_index, agent_number):
-        if (vertical_index < 0 or vertical_index >= self.__VERTICAL_SIZE) and (
-                horizontal_index < 0 or vertical_index >= self.__HORIZONTAL_SIZE):
+    @staticmethod
+    def get_reverse_cells_custom_board(vertical_index, horizontal_index, agent_number, custom_reversi_board):
+        if (vertical_index < 0 or vertical_index >= 8) and (
+                horizontal_index < 0 or vertical_index >= 8):
             raise IndexError("Reference outside of the board.")
         if abs(agent_number) != 1:
             raise Exception("Select 1 or -1 for Agent Number.(-1: white, 1: black)")
 
         ret = []
         save = []
-        if self.__reversi_board[vertical_index][horizontal_index] != 0:
+        if custom_reversi_board[vertical_index][horizontal_index] != 0:
             return ret
 
         def check(inner_vertical_index, inner_horizontal_index):
-            nonlocal agent_number, ret, save
-            temp = self.__reversi_board[inner_vertical_index][inner_horizontal_index]
+            nonlocal agent_number, ret, save, custom_reversi_board
+            temp = custom_reversi_board[inner_vertical_index][inner_horizontal_index]
             if temp == agent_number * -1:
                 save.append((inner_vertical_index, inner_horizontal_index))
                 return False
@@ -62,29 +60,37 @@ class GameBoard(object):
                 move_horizontal_index += move_horizontal_value
 
         for i in [-1, 0, 1]:
-            for j in [-1, 0,  1]:
+            for j in [-1, 0, 1]:
                 if i == 0 and j == 0:
                     continue
                 move_diagonally(i, j)
 
         return np.array(ret)
 
-    def get_selectable_cells(self, agent_number):
+    def get_reverse_cells(self, vertical_index, horizontal_index, agent_number):
+        return self.get_reverse_cells_custom_board(vertical_index, horizontal_index, agent_number, self.__reversi_board)
+
+    @staticmethod
+    def get_selectable_cells_custom_board(agent_number, custom_reversi_board):
         if abs(agent_number) != 1:
             raise Exception("Select 1 or -1 for Agent Number.(-1: white, 1: black)")
         ret = []
-        for vertical_index in range(0, self.__VERTICAL_SIZE):
-            for horizontal_index in range(0, self.__HORIZONTAL_SIZE):
-                if len(self.__get_reverse_cells(vertical_index, horizontal_index, agent_number)) != 0:
+        for vertical_index in range(0, 8):
+            for horizontal_index in range(0, 9):
+                if len(GameBoard.get_reverse_cells_custom_board(vertical_index, horizontal_index,
+                                                                agent_number, custom_reversi_board)) != 0:
                     ret.append((vertical_index, horizontal_index))
         return np.array(ret)
+
+    def get_selectable_cells(self, agent_number):
+        return self.get_selectable_cells_custom_board(agent_number, self.__reversi_board)
 
     def count_stones(self, agent_number):
         if abs(agent_number) != 1:
             raise Exception("Select 1 or -1 for Agent Number.(-1: white, 1: black)")
         ret = 0
-        for vertical_index in range(0, self.__VERTICAL_SIZE):
-            for horizontal_index in range(0, self.__HORIZONTAL_SIZE):
+        for vertical_index in range(0, 8):
+            for horizontal_index in range(0, 8):
                 if self.__reversi_board[vertical_index][horizontal_index] == agent_number:
                     ret += 1
         return ret
@@ -106,7 +112,7 @@ class GameBoard(object):
         return self.__is_game_end
 
     def put_stone(self, vertical_index, horizontal_index, agent_number):
-        replace_cells = self.__get_reverse_cells(vertical_index, horizontal_index, agent_number)
+        replace_cells = self.get_reverse_cells(vertical_index, horizontal_index, agent_number)
         self.__reversi_board[vertical_index][horizontal_index] = agent_number
         for temp in replace_cells:
             self.__reversi_board[temp[0]][temp[1]] = agent_number
@@ -134,11 +140,3 @@ class GameBoard(object):
     @property
     def reversi_board(self):
         return self.__reversi_board
-
-    @property
-    def vertical_size(self):
-        return self.__VERTICAL_SIZE
-
-    @property
-    def horizontal_size(self):
-        return self.__HORIZONTAL_SIZE
