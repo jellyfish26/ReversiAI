@@ -247,6 +247,12 @@ class QLeaningAgent(Agent):
     def calc_now_q_value(self):
         return self.__calc_custom_q_value(self.__weight_vector, self.__now_feature_vector)
 
+    def __calc_custom_q_value_not_change(self, index, weight_vector, feature_vector):
+        feature_vector[index] = 1
+        ret = self.__calc_custom_q_value(weight_vector, feature_vector)
+        feature_vector[index] = 0
+        return ret
+
     # after exec next step (exec in receive?*_signal)
     def __update_gravity_vector(self, reward):
         max_value = -100
@@ -255,15 +261,14 @@ class QLeaningAgent(Agent):
 
         def update_max_value(inner_index):
             nonlocal max_value, next_feature_vector
-            next_feature_vector[inner_index] = 1
             max_value = max(
                 max_value,
-                self.__calc_custom_q_value(
+                self.__calc_custom_q_value_not_change(
+                    inner_index,
                     self.__weight_vector,
                     next_feature_vector
                 )
             )
-            next_feature_vector[inner_index] = 0
 
         if len(enemy_selectable) == 0:
             update_max_value(8 * 8 * 3)
@@ -291,6 +296,21 @@ class QLeaningAgent(Agent):
 
         for index in range(0, 8 * 8 * 3 + 1):
             self.__weight_vector[index] = calc(index)
+
+    def __get_best_move(self):
+        selectable_cells = self.belong_game_board.get_selectable_cells(self.agent_number)
+        ret = selectable_cells[0]
+        max_value = -100
+        for cell in selectable_cells:
+            now_value = self.__calc_custom_q_value_not_change(
+                self.__calc_index_from_board_index(self.agent_number, cell[0], cell[1]),
+                self.__weight_vector,
+                self.__now_feature_vector
+            )
+            if max_value < now_value:
+                ret = cell
+                max_value = now_value
+        return ret
 
     def receive_update_signal(self):
         pass
