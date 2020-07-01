@@ -110,11 +110,29 @@ class GameBoard(object):
             self.__is_game_end = 1
         return self.__is_game_end
 
+    # warning, this method is rewrite reversi board (argument). return is change index
+    @staticmethod
+    def put_stone_custom_board(vertical_index, horizontal_index, agent_number, custom_reversi_board):
+        ret = [(vertical_index, horizontal_index)]
+        replace_cells = GameBoard.get_reverse_cells_custom_board(
+            vertical_index,
+            horizontal_index,
+            agent_number,
+            custom_reversi_board
+        )
+        custom_reversi_board[vertical_index][horizontal_index] = agent_number
+        for cell in replace_cells:
+            custom_reversi_board[cell[0]][cell[1]] = agent_number
+            ret.append((cell[0], cell[1]))
+        return np.array(ret)
+
     def put_stone(self, vertical_index, horizontal_index, agent_number):
-        replace_cells = self.get_reverse_cells(vertical_index, horizontal_index, agent_number)
-        self.__reversi_board[vertical_index][horizontal_index] = agent_number
-        for temp in replace_cells:
-            self.__reversi_board[temp[0]][temp[1]] = agent_number
+        self.put_stone_custom_board(
+            vertical_index,
+            horizontal_index,
+            agent_number,
+            self.__reversi_board
+        )
 
     def game_start(self):
         self.__init_board()
