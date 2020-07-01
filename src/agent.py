@@ -388,13 +388,12 @@ class QLeaningAgent(Agent):
     def receive_game_end_signal(self):
         if not self.__is_learning:
             return
-        self.__now_feature_vector = self.__convert_board_to_feature_vector(self.belong_game_board.reversi_board)
+        self.__now_feature_vector[8 * 8 * 3] = 1
         result = self.belong_game_board.check_game_end()
         if result == 2:
             result = 0
         # thinking
-        # if self.agent_number == 1:
-        #    result *= -1
+        result *= self.agent_number
         result *= 100
         self.__update_gravity_vector(result, True)
 
