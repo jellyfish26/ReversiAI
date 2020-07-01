@@ -28,7 +28,7 @@ def battle_start(times, first_agent, second_agent):
 
 if __name__ == '__main__':
     trials = int(input())
-    one_agent = agent.QLeaningAgent(False)
-    one_agent.load_weight_vector("../data/2020-06-30-Q-4/Q-2000.npy")
-    two_agent = agent.RandomAgent()
+    one_agent = agent.RandomAgent()
+    two_agent = agent.QLeaningAgent(False)
+    two_agent.load_weight_vector("../data/QQ-1-rev/Q-2000.npy")
     battle_start(trials, one_agent, two_agent)

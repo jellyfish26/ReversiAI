@@ -342,12 +342,15 @@ class QLeaningAgent(Agent):
     def __get_boltzmann_select(self):
         selectable_cells = self.belong_game_board.get_selectable_cells(self.agent_number)
         base_value = 0
+        max_q_value = -1000000
         for cell in selectable_cells:
-            base_value += math.exp(self.__calc_action_q_value(cell) / self.__TEMPERATURE)
+            max_q_value = max(max_q_value, self.__calc_action_q_value(cell) / self.__TEMPERATURE)
+        for cell in selectable_cells:
+            base_value += math.exp(self.__calc_action_q_value(cell) / self.__TEMPERATURE - max_q_value)
         sum_value = 0
         probability = []
         for cell in selectable_cells:
-            sum_value += (math.exp(self.__calc_action_q_value(cell) / self.__TEMPERATURE)) / base_value
+            sum_value += (math.exp(self.__calc_action_q_value(cell) / self.__TEMPERATURE - max_q_value)) / base_value
             probability.append(sum_value)
         probability[-1] = 1
         select_value = random.random()
@@ -389,9 +392,10 @@ class QLeaningAgent(Agent):
         result = self.belong_game_board.check_game_end()
         if result == 2:
             result = 0
-        # if self.agent_number == -1: thinking...
+        # thinking
+        # if self.agent_number == 1:
         #    result *= -1
-        result *= 10
+        result *= 100
         self.__update_gravity_vector(result, True)
 
     def next_step(self):
@@ -407,3 +411,18 @@ class QLeaningAgent(Agent):
 
     def load_weight_vector(self, file_path):
         self.__weight_vector = np.load(file_path)
+
+
+class NeuralNetworkGALeaningAgent(Agent):
+    def __init__(self):
+        super().__init__("NeuralNetworkGA", False)
+
+    def receive_update_signal(self):
+        pass
+
+    def receive_game_end_signal(self):
+        pass
+
+    def next_step(self):
+        pass
+
