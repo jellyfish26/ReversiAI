@@ -415,6 +415,48 @@ class QLeaningAgent(Agent):
 class NeuralNetworkGALeaningAgent(Agent):
     def __init__(self):
         super().__init__("NeuralNetworkGA", False)
+        self.__now_vector = np.zeros(66)
+        self.__input_weight = np.random.rand(66, 100)
+        self.__middle_one_weight = np.random.rand(100, 50)
+        self.__middle_two_weight = np.random.rand(50, 20)
+        self.__output_weight = np.random.rand(20, 1)
+
+    # under about Neural Network
+    @staticmethod
+    def sigmoid(x):
+        return (np.tanh(x / 2) + 1) / 2
+
+    # forward propagation
+    def forward(self):
+        # input layer
+        now_layer = copy.deepcopy(self.__now_vector)
+        # first middle layer
+        now_layer = np.dot(now_layer, self.__input_weight)
+        now_layer = self.sigmoid(now_layer)
+        # second middle layer
+        now_layer = np.dot(now_layer, self.__middle_one_weight)
+        now_layer = self.sigmoid(now_layer)
+        # third middle layer
+        now_layer = np.dot(now_layer, self.__middle_two_weight)
+        now_layer = self.sigmoid(now_layer)
+        # output layer
+        now_layer = np.dot(now_layer, self.__output_weight)
+        return now_layer[0]
+    # end Neural Network
+
+    @staticmethod
+    def generate_vector_on_custom_board(agent_number, custom_reversi_board):
+        vector = custom_reversi_board.reshape(1, 64)
+        my_stones = game_board.GameBoard.count_stones_custom_board(agent_number, custom_reversi_board)
+        enemy_stones = game_board.GameBoard.count_stones_custom_board(agent_number * -1, custom_reversi_board)
+        add_vector = np.array([my_stones - enemy_stones, 64 - my_stones - enemy_stones])
+        return np.concatenate([vector, add_vector])
+
+    def update_vector(self):
+        self.__now_vector = self.generate_vector_on_custom_board(
+            self.agent_number,
+            self.belong_game_board.reversi_board
+        )
 
     def receive_update_signal(self):
         pass
@@ -424,4 +466,3 @@ class NeuralNetworkGALeaningAgent(Agent):
 
     def next_step(self):
         pass
-

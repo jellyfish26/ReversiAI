@@ -84,15 +84,19 @@ class GameBoard(object):
     def get_selectable_cells(self, agent_number):
         return self.get_selectable_cells_custom_board(agent_number, self.__reversi_board)
 
-    def count_stones(self, agent_number):
+    @staticmethod
+    def count_stones_custom_board(agent_number, custom_reversi_board):
         if abs(agent_number) != 1:
             raise Exception("Select 1 or -1 for Agent Number.(-1: white, 1: black)")
         ret = 0
         for vertical_index in range(0, 8):
             for horizontal_index in range(0, 8):
-                if self.__reversi_board[vertical_index][horizontal_index] == agent_number:
+                if custom_reversi_board[vertical_index][horizontal_index] == agent_number:
                     ret += 1
         return ret
+
+    def count_stones(self, agent_number):
+        return self.count_stones_custom_board(agent_number, self.__reversi_board)
 
     # white win = -1, black win = 1, draw = 2, nothing = 0
     def check_game_end(self):
