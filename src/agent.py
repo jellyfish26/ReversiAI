@@ -445,24 +445,68 @@ class NeuralNetworkGALeaningAgent(Agent):
     # end Neural Network
 
     @staticmethod
-    def generate_vector_on_custom_board(agent_number, custom_reversi_board):
+    def __generate_vector_on_custom_board(agent_number, custom_reversi_board):
         vector = custom_reversi_board.reshape(1, 64)
         my_stones = game_board.GameBoard.count_stones_custom_board(agent_number, custom_reversi_board)
         enemy_stones = game_board.GameBoard.count_stones_custom_board(agent_number * -1, custom_reversi_board)
         add_vector = np.array([my_stones - enemy_stones, 64 - my_stones - enemy_stones])
         return np.concatenate([vector, add_vector])
 
-    def update_vector(self):
-        self.__now_vector = self.generate_vector_on_custom_board(
+    def __update_vector(self):
+        self.__now_vector = self.__generate_vector_on_custom_board(
             self.agent_number,
             self.belong_game_board.reversi_board
         )
 
     def receive_update_signal(self):
-        pass
+        self.__update_vector()
 
     def receive_game_end_signal(self):
         pass
 
     def next_step(self):
         pass
+
+    def __get_all_weight_array(self):
+        return [self.__input_weight, self.__middle_one_weight, self.__middle_two_weight, self.__output_weight]
+
+    def cross_over_one_point(self, add_agent):
+        ret = NeuralNetworkGALeaningAgent()
+        if not isinstance(add_agent, NeuralNetworkGALeaningAgent):
+            raise Exception("this method same class as the argument")
+
+        def array_bound(index, first_array, second_array):
+            if random.randint(0, 1) == 0:
+                return np.concatenate([first_array[:index], second_array[index:]])
+            else:
+                return np.concatenate([second_array[:index], first_array[index:]])
+
+        ret_weight = []
+        for my_weight, add_weight in zip(self.__get_all_weight_array(), add_agent.__get_all_weight_array()):
+            shape_info = my_weight.shape
+            first_weight = my_weight.reshape(1, shape_info[0] * shape_info[1])
+            second_weight = my_weight.reshape(1, shape_info[0] * shape_info[1])
+            new_weight = array_bound(random.randint(0, shape_info[0] * shape_info[1] - 1), first_weight, second_weight)
+            ret_weight.append(new_weight.reshape(shape_info))
+        ret.__input_weight = ret_weight[0]
+        ret.__middle_one_weight = ret_weight[1]
+        ret.__middle_two_weight = ret_weight[2]
+        ret.__output_weight = ret_weight[3]
+        return ret
+
+    def normal_mutation(self):
+        ret = self.copy()
+
+        def mutation(array_weight):
+            now_weight = copy.deepcopy(array_weight)
+            shape_info = now_weight.shape
+            now_weight = now_weight.reshape(1, shape_info[0] * shape_info[1])
+            index = random.randint(0, shape_info[0] * shape_info[1] - 1)
+            now_weight[index] = random.random()
+            array_weight = now_weight.reshape(shape_info)
+
+        mutation(ret.__input_weight)
+        mutation(ret.__middle_one_weight)
+        mutation(ret.__middle_two_weight)
+        mutation(ret.__output_weight)
+        return ret
