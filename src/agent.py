@@ -447,11 +447,11 @@ class NeuralNetworkGALeaningAgent(Agent):
 
     @staticmethod
     def __generate_vector_on_custom_board(agent_number, custom_reversi_board):
-        vector = custom_reversi_board.reshape(1, 64)
+        vector = custom_reversi_board.reshape(64)
         my_stones = game_board.GameBoard.count_stones_custom_board(agent_number, custom_reversi_board)
         enemy_stones = game_board.GameBoard.count_stones_custom_board(agent_number * -1, custom_reversi_board)
         add_vector = np.array([my_stones - enemy_stones, 64 - my_stones - enemy_stones])
-        return np.concatenate([vector, add_vector, [0, 0]])
+        return np.concatenate([vector, add_vector, np.array([0, 0])])
 
     def __update_vector(self):
         self.__now_vector = self.__generate_vector_on_custom_board(
@@ -466,6 +466,8 @@ class NeuralNetworkGALeaningAgent(Agent):
         pass
 
     def next_step(self):
+        if self.agent_number == 1:
+            self.__now_vector *= -1
         selectable_cells = self.belong_game_board.get_selectable_cells(self.agent_number)
         ret = 0
         max_value = -10000
@@ -511,7 +513,7 @@ class NeuralNetworkGALeaningAgent(Agent):
         def mutation(array_weight):
             now_weight = copy.deepcopy(array_weight)
             shape_info = now_weight.shape
-            now_weight = now_weight.reshape(1, shape_info[0] * shape_info[1])
+            now_weight = now_weight.reshape(shape_info[0] * shape_info[1])
             index = random.randint(0, shape_info[0] * shape_info[1] - 1)
             now_weight[index] = random.random()
             now_weight = now_weight.reshape(shape_info)
@@ -524,3 +526,13 @@ class NeuralNetworkGALeaningAgent(Agent):
         mutation(ret.__middle_two_weight)
         mutation(ret.__output_weight)
         return ret
+
+    def save_weight_vector(self, file_path):
+        np.save(file_path, np.array(self.__get_all_weight_array()))
+
+    def load_weight_vector(self, file_path):
+        weight_vector = np.load(file_path, allow_pickle=True)
+        self.__input_weight = weight_vector[0]
+        self.__middle_one_weight = weight_vector[1]
+        self.__middle_two_weight = weight_vector[2]
+        self.__output_weight = weight_vector[3]

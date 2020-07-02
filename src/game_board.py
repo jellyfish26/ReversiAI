@@ -138,7 +138,7 @@ class GameBoard(object):
             self.__reversi_board
         )
 
-    def game_start(self):
+    def game_start(self, save_data=None):
         self.__init_board()
         self.__first_agent.receive_update_signal()
         self.__second_agent.receive_update_signal()
@@ -159,7 +159,10 @@ class GameBoard(object):
             self.__turn_agent_number *= -1
         self.__first_agent.receive_game_end_signal()
         self.__second_agent.receive_game_end_signal()
-        return self.check_game_end()
+        if save_data is None:
+            return self.check_game_end()
+        else:
+            return self.check_game_end(), save_data
 
     @property
     def reversi_board(self):
