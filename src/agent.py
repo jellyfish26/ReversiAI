@@ -415,8 +415,8 @@ class QLeaningAgent(Agent):
 class NeuralNetworkGALeaningAgent(Agent):
     def __init__(self):
         super().__init__("NeuralNetworkGA", False)
-        self.__now_vector = np.zeros(66)
-        self.__input_weight = np.random.rand(66, 100)
+        self.__now_vector = np.zeros(68)
+        self.__input_weight = np.random.rand(68, 100)
         self.__middle_one_weight = np.random.rand(100, 50)
         self.__middle_two_weight = np.random.rand(50, 20)
         self.__output_weight = np.random.rand(20, 1)
@@ -442,6 +442,7 @@ class NeuralNetworkGALeaningAgent(Agent):
         # output layer
         now_layer = np.dot(now_layer, self.__output_weight)
         return now_layer[0]
+
     # end Neural Network
 
     @staticmethod
@@ -450,7 +451,7 @@ class NeuralNetworkGALeaningAgent(Agent):
         my_stones = game_board.GameBoard.count_stones_custom_board(agent_number, custom_reversi_board)
         enemy_stones = game_board.GameBoard.count_stones_custom_board(agent_number * -1, custom_reversi_board)
         add_vector = np.array([my_stones - enemy_stones, 64 - my_stones - enemy_stones])
-        return np.concatenate([vector, add_vector])
+        return np.concatenate([vector, add_vector, [0, 0]])
 
     def __update_vector(self):
         self.__now_vector = self.__generate_vector_on_custom_board(
@@ -465,7 +466,17 @@ class NeuralNetworkGALeaningAgent(Agent):
         pass
 
     def next_step(self):
-        pass
+        selectable_cells = self.belong_game_board.get_selectable_cells(self.agent_number)
+        ret = 0
+        max_value = -10000
+        for index, cell in enumerate(selectable_cells):
+            self.__now_vector[66] = cell[0]
+            self.__now_vector[67] = cell[1]
+            calc_value = self.forward()
+            if max_value < calc_value:
+                ret = index
+                max_value = calc_value
+        return selectable_cells[ret]
 
     def __get_all_weight_array(self):
         return [self.__input_weight, self.__middle_one_weight, self.__middle_two_weight, self.__output_weight]
@@ -503,7 +514,10 @@ class NeuralNetworkGALeaningAgent(Agent):
             now_weight = now_weight.reshape(1, shape_info[0] * shape_info[1])
             index = random.randint(0, shape_info[0] * shape_info[1] - 1)
             now_weight[index] = random.random()
-            array_weight = now_weight.reshape(shape_info)
+            now_weight = now_weight.reshape(shape_info)
+            for first_index, inner_array in enumerate(now_weight):
+                for second_index, value in enumerate(inner_array):
+                    array_weight[first_index][second_index] = value
 
         mutation(ret.__input_weight)
         mutation(ret.__middle_one_weight)
