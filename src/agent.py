@@ -466,8 +466,6 @@ class NeuralNetworkGALeaningAgent(Agent):
         pass
 
     def next_step(self):
-        if self.agent_number == 1:
-            self.__now_vector *= -1
         selectable_cells = self.belong_game_board.get_selectable_cells(self.agent_number)
         ret = 0
         max_value = -10000
@@ -497,8 +495,8 @@ class NeuralNetworkGALeaningAgent(Agent):
         ret_weight = []
         for my_weight, add_weight in zip(self.__get_all_weight_array(), add_agent.__get_all_weight_array()):
             shape_info = my_weight.shape
-            first_weight = my_weight.reshape(1, shape_info[0] * shape_info[1])
-            second_weight = my_weight.reshape(1, shape_info[0] * shape_info[1])
+            first_weight = my_weight.reshape(shape_info[0] * shape_info[1])
+            second_weight = my_weight.reshape(shape_info[0] * shape_info[1])
             new_weight = array_bound(random.randint(0, shape_info[0] * shape_info[1] - 1), first_weight, second_weight)
             ret_weight.append(new_weight.reshape(shape_info))
         ret.__input_weight = ret_weight[0]

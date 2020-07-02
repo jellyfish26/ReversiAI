@@ -119,7 +119,7 @@ class QLearning:
 class NNGALearning:
     def __init__(self, evolve_times):
         self.__NUMBER_INDIVIDUALS = 20  # more than 10
-        self.__NUMBER_MUTATION = 4
+        self.__NUMBER_MUTATION = 5  # more than 2
         self.__EVOLVE_TIMES = evolve_times
         self.__now_generation = []
         self.__data_generation_average = []
@@ -155,9 +155,10 @@ class NNGALearning:
             select_elite = self.__now_generation[random.randint(0, 1)][0]
             select_another = self.__now_generation[random.randint(2, self.__NUMBER_INDIVIDUALS - 1)][0]
             ret.append([select_elite.cross_over_one_point(select_another), 0])
-        for times in range(0, self.__NUMBER_MUTATION):
+        for times in range(0, self.__NUMBER_MUTATION - 1):
             select_agent = self.__now_generation[random.randint(0, self.__NUMBER_INDIVIDUALS -1)][0]
             ret.append([select_agent.normal_mutation(), 0])
+        ret.append([agent.NeuralNetworkGALeaningAgent(), 0])
         self.__now_generation = ret
 
     def __calc_generation_average(self):
