@@ -514,8 +514,8 @@ class NeuralNetworkGALeaningAgent(Agent):
             now_weight = copy.deepcopy(array_weight)
             shape_info = now_weight.shape
             now_weight = now_weight.reshape(shape_info[0] * shape_info[1])
-            index = random.randint(0, shape_info[0] * shape_info[1] - 1)
-            now_weight[index] = random.random()
+            for i in range(0, 3):
+                now_weight[random.randint(0, shape_info[0] * shape_info[1] - 1)] = random.random()
             now_weight = now_weight.reshape(shape_info)
             for first_index, inner_array in enumerate(now_weight):
                 for second_index, value in enumerate(inner_array):

@@ -142,7 +142,7 @@ class NNGALearning:
             self.__progress_bar.update(1)
             if end_task.result()[0] == -1:
                 self.__now_generation[end_task.result()[1][0]][1] += 1
-            elif end_task.result() == 1:
+            elif end_task.result()[0] == 1:
                 self.__now_generation[end_task.result()[1][1]][1] += 1
         executor.shutdown()
 
