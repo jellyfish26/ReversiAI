@@ -35,7 +35,7 @@ class GameBoard(object):
         ret = []
         save = []
         if custom_reversi_board[vertical_index][horizontal_index] != 0:
-            return ret
+            return np.array(ret)
 
         def check(inner_vertical_index, inner_horizontal_index):
             nonlocal agent_number, ret, save, custom_reversi_board
