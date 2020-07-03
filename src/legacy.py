@@ -9,7 +9,7 @@ import concurrent.futures
 
 class NeuralNetworkGALeaningAgent(agent.Agent):
     def __init__(self):
-        super().__init__("NeuralNetworkGA", False)
+        super().__init__("LegacyNNGA", False)
         self.__now_vector = np.zeros(64)
         self.__input_weight = np.random.rand(64, 100)
         self.__middle_one_weight = np.random.rand(100, 50)

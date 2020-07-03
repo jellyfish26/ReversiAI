@@ -250,15 +250,12 @@ class QLeaningAgent(Agent):
         return ret
 
     def __calc_custom_q_value_not_change(self, agent_number, action, weight_vector, feature_vector):
-        change_index = (
-            self.__calc_index_from_board_index(agent_number, action[0], action[1]),
-            self.__calc_index_from_board_index(0, action[0], action[1])
+        reversi_board = self.__convert_feature_vector_to_board(feature_vector)
+        game_board.GameBoard.put_stone_custom_board(action[0], action[1], agent_number, reversi_board)
+        ret = self.__calc_custom_q_value(
+            weight_vector,
+            self.__convert_board_to_feature_vector(reversi_board)
         )
-        feature_vector[change_index[0]] = 1
-        feature_vector[change_index[1]] = 0
-        ret = self.__calc_custom_q_value(weight_vector, feature_vector)
-        feature_vector[change_index[0]] = 0
-        feature_vector[change_index[1]] = 1
         return ret
 
     def __calc_game_end_q_value_not_change(self, weight_vector, feature_vector):
@@ -280,18 +277,28 @@ class QLeaningAgent(Agent):
         max_value = 0
         enemy_selectable = self.belong_game_board.get_selectable_cells(self.agent_number * -1)
         next_feature_vector = copy.deepcopy(self.__now_feature_vector)
+        reversi_board = copy.deepcopy(self.belong_game_board.reversi_board)
 
         def update_max_value(agent_number, action):
-            nonlocal max_value, next_feature_vector
+            nonlocal max_value, reversi_board
+            my_change_cells = game_board.GameBoard.put_stone_custom_board(
+                action[0],
+                action[1],
+                self.agent_number,
+                reversi_board
+            )
             max_value = max(
                 max_value,
                 self.__calc_custom_q_value_not_change(
                     agent_number,
                     action,
                     self.__weight_vector,
-                    next_feature_vector
+                    self.__convert_board_to_feature_vector(reversi_board)
                 )
             )
+            reversi_board[my_change_cells[0][0]][my_change_cells[0][1]] = 0
+            for my_cell in my_change_cells[1:]:
+                reversi_board[my_cell[0]][my_cell[1]] *= -1
 
         if is_game_end:
             max_value = max(
@@ -303,24 +310,25 @@ class QLeaningAgent(Agent):
             )
         else:
             for enemy in enemy_selectable:
-                change_cell_enemy_index = (
-                    self.__calc_index_from_board_index(self.agent_number * -1, enemy[0], enemy[1]),
-                    self.__calc_index_from_board_index(0, enemy[0], enemy[1]),
+                change_cells = game_board.GameBoard.put_stone_custom_board(
+                    enemy[0],
+                    enemy[1],
+                    self.agent_number * -1,
+                    reversi_board
                 )
-                next_feature_vector[change_cell_enemy_index[0]] = 1
-                next_feature_vector[change_cell_enemy_index[1]] = 0
                 next_my_selectable = game_board.GameBoard.get_selectable_cells_custom_board(
                     self.agent_number,
-                    self.__convert_feature_vector_to_board(next_feature_vector)
+                    reversi_board
                 )
                 for my in next_my_selectable:
                     update_max_value(self.agent_number, my)
-                next_feature_vector[change_cell_enemy_index[0]] = 0
-                next_feature_vector[change_cell_enemy_index[1]] = 1
+                reversi_board[change_cells[0][0]][change_cells[0][1]] = 0
+                for enemy_cell in change_cells[1:]:
+                    reversi_board[enemy_cell[0]][enemy_cell[1]] *= -1
             if len(enemy_selectable) == 0:
                 next_my_selectable = game_board.GameBoard.get_selectable_cells_custom_board(
                     self.agent_number,
-                    self.__convert_feature_vector_to_board(next_feature_vector)
+                    reversi_board
                 )
                 for my in next_my_selectable:
                     update_max_value(self.agent_number, my)
