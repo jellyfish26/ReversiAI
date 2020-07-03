@@ -415,8 +415,8 @@ class QLeaningAgent(Agent):
 class NeuralNetworkGALeaningAgent(Agent):
     def __init__(self):
         super().__init__("NeuralNetworkGA", False)
-        self.__now_vector = np.zeros(68)
-        self.__input_weight = np.random.rand(68, 100)
+        self.__now_vector = np.zeros(66)
+        self.__input_weight = np.random.rand(66, 100)
         self.__middle_one_weight = np.random.rand(100, 50)
         self.__middle_two_weight = np.random.rand(50, 20)
         self.__output_weight = np.random.rand(20, 1)
@@ -451,7 +451,7 @@ class NeuralNetworkGALeaningAgent(Agent):
         my_stones = game_board.GameBoard.count_stones_custom_board(agent_number, custom_reversi_board)
         enemy_stones = game_board.GameBoard.count_stones_custom_board(agent_number * -1, custom_reversi_board)
         add_vector = np.array([my_stones - enemy_stones, 64 - my_stones - enemy_stones])
-        return np.concatenate([vector, add_vector, np.array([0, 0])])
+        return np.concatenate([vector, add_vector])
 
     def __update_vector(self):
         self.__now_vector = self.__generate_vector_on_custom_board(
@@ -469,13 +469,25 @@ class NeuralNetworkGALeaningAgent(Agent):
         selectable_cells = self.belong_game_board.get_selectable_cells(self.agent_number)
         ret = 0
         max_value = -10000
+        reversi_board = copy.deepcopy(self.belong_game_board.reversi_board)
         for index, cell in enumerate(selectable_cells):
-            self.__now_vector[66] = cell[0]
-            self.__now_vector[67] = cell[1]
+            change_cells = game_board.GameBoard.put_stone_custom_board(
+                cell[0],
+                cell[1],
+                self.agent_number,
+                reversi_board
+            )
+            if self.agent_number == 1:
+                reversi_board *= -1
             calc_value = self.forward()
             if max_value < calc_value:
                 ret = index
                 max_value = calc_value
+            if self.agent_number == 1:
+                reversi_board *= -1
+            reversi_board[change_cells[0][0], change_cells[0][1]] = 0
+            for change_cell in change_cells[1:]:
+                reversi_board[change_cell[0]][change_cell[1]] = self.agent_number * -1
         return selectable_cells[ret]
 
     def __get_all_weight_array(self):

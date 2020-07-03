@@ -1,5 +1,4 @@
 import game_board
-import agent
 import tqdm
 import concurrent.futures
 
@@ -24,11 +23,3 @@ def battle_start(times, first_agent, second_agent):
     print("Number of trials %d" % times)
     print("win(%s): %d, win(%s): %d, draw: %d" % (
         first_agent.agent_name, count[0], second_agent.agent_name, count[2], count[1]))
-
-
-if __name__ == '__main__':
-    trials = int(input())
-    one_agent = agent.NeuralNetworkGALeaningAgent()
-    one_agent.load_weight_vector("../data/NNGA-2/NNGA-200.npy")
-    two_agent = agent.RandomAgent()
-    battle_start(trials, one_agent, two_agent)

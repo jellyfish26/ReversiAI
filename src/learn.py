@@ -124,11 +124,11 @@ class NNGALearning:
         self.__now_generation = []
         self.__data_generation_average = []
         self.__progress_bar = None
+        self.__executor = concurrent.futures.ProcessPoolExecutor()
         for number in range(0, self.__NUMBER_INDIVIDUALS):
             self.__now_generation.append([agent.NeuralNetworkGALeaningAgent(), 0])
 
     def __battle_all_agent(self):
-        executor = concurrent.futures.ProcessPoolExecutor()
         waiting_queue = []
         for index in range(0, self.__NUMBER_INDIVIDUALS):
             for times in range(0, self.__NUMBER_INDIVIDUALS):
@@ -137,14 +137,13 @@ class NNGALearning:
                 first = self.__now_generation[index][0].copy()
                 second = self.__now_generation[times][0].copy()
                 game = game_board.GameBoard(first, second)
-                waiting_queue.append(executor.submit(game.game_start, (index, times)))
+                waiting_queue.append(self.__executor.submit(game.game_start, (index, times)))
         for end_task in concurrent.futures.as_completed(waiting_queue):
             self.__progress_bar.update(1)
             if end_task.result()[0] == -1:
                 self.__now_generation[end_task.result()[1][0]][1] += 1
             elif end_task.result()[0] == 1:
                 self.__now_generation[end_task.result()[1][1]][1] += 1
-        executor.shutdown()
 
     def __generation_sort(self):
         self.__now_generation.sort(key=lambda x: x[1], reverse=True)
@@ -171,7 +170,9 @@ class NNGALearning:
         np.save(file_path, np.array(self.__data_generation_average))
 
     def start(self, file_path, save_interval):
-        self.__progress_bar = tqdm.tqdm(total=self.__NUMBER_INDIVIDUALS * self.__NUMBER_INDIVIDUALS * self.__EVOLVE_TIMES)
+        self.__progress_bar = tqdm.tqdm(
+            total=(self.__NUMBER_INDIVIDUALS) * (self.__NUMBER_INDIVIDUALS - 1) * self.__EVOLVE_TIMES
+        )
         self.__progress_bar.set_description('learning ' + str(self.__EVOLVE_TIMES) + ' generations...')
         for times in range(1, self.__EVOLVE_TIMES + 1):
             if times != 1:
@@ -181,4 +182,5 @@ class NNGALearning:
             self.__data_generation_average.append(self.__calc_generation_average())
             if times % save_interval == 0:
                 self.__now_generation[0][0].save_weight_vector(file_path + str(times))
+        self.__executor.shutdown()
         self.__progress_bar.close()
