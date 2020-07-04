@@ -5,6 +5,7 @@ import random
 import numpy as np
 import copy
 import math
+import tensorflow.keras
 
 
 class Agent(metaclass=ABCMeta):
@@ -464,7 +465,7 @@ class NeuralNetworkGALeaningAgent(Agent):
                 for horizontal_index in horizontal_array:
                     if custom_reversi_board[vertical_index][horizontal_index] == agent_number:
                         my_count += 1
-                    else:
+                    elif custom_reversi_board[vertical_index][horizontal_index] == agent_number * -1:
                         enemy_count += 1
         specific_count_stone([0, 7], [0, 7])
         ret[0] = my_count

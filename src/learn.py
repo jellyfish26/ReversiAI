@@ -143,7 +143,7 @@ class NNGALearning:
             elif end_task.result()[0] == 1:
                 self.__now_generation[end_task.result()[1][1]][1] += 1
 
-    def __battle_random_agent(self, is_first, partner):
+    def __battle_random_agent(self, partner, is_first):
         waiting_queue = []
         for index in range(0, self.__NUMBER_INDIVIDUALS):
             for times in range(0, self.__NUMBER_INDIVIDUALS):
