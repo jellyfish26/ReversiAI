@@ -159,10 +159,7 @@ class GameBoard(object):
             self.__turn_agent_number *= -1
         self.__first_agent.receive_game_end_signal()
         self.__second_agent.receive_game_end_signal()
-        if save_data is None:
-            return self.check_game_end()
-        else:
-            return self.check_game_end(), save_data
+        return self.check_game_end(), save_data
 
     @property
     def reversi_board(self):

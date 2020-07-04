@@ -5,7 +5,6 @@ import random
 import numpy as np
 import copy
 import math
-from numba import jit
 
 
 class Agent(metaclass=ABCMeta):
@@ -423,14 +422,13 @@ class QLeaningAgent(Agent):
 
 class NeuralNetworkGALeaningAgent(Agent):
     def __init__(self):
-        super().__init__("LegacyNNGA", False)
+        super().__init__("NNGA", False)
         self.__now_vector = np.zeros(8)
         self.__input_weight = np.random.rand(8, 15)
         self.__output_weight = np.random.rand(15, 1)
 
     # under about Neural Network
     @staticmethod
-    @jit
     def sigmoid(x):
         return (np.tanh(x / 2) + 1) / 2
 
@@ -517,13 +515,12 @@ class NeuralNetworkGALeaningAgent(Agent):
     def __get_all_weight_array(self):
         return [self.__input_weight, self.__output_weight]
 
-    @jit
     def cross_over_one_point(self, add_agent):
         ret = NeuralNetworkGALeaningAgent()
         if not isinstance(add_agent, NeuralNetworkGALeaningAgent):
             raise Exception("this method same class as the argument")
 
-        def array_bound(index, first_array, second_array):
+        def array_concatenate(index, first_array, second_array):
             if random.randint(0, 1) == 0:
                 return np.concatenate([first_array[:index], second_array[index:]])
             else:
@@ -533,8 +530,12 @@ class NeuralNetworkGALeaningAgent(Agent):
         for my_weight, add_weight in zip(self.__get_all_weight_array(), add_agent.__get_all_weight_array()):
             shape_info = my_weight.shape
             first_weight = my_weight.reshape(shape_info[0] * shape_info[1])
-            second_weight = my_weight.reshape(shape_info[0] * shape_info[1])
-            new_weight = array_bound(random.randint(0, shape_info[0] * shape_info[1] - 1), first_weight, second_weight)
+            second_weight = add_weight.reshape(shape_info[0] * shape_info[1])
+            new_weight = array_concatenate(
+                random.randint(0, shape_info[0] * shape_info[1] - 1),
+                first_weight,
+                second_weight
+            )
             ret_weight.append(new_weight.reshape(shape_info))
         ret.__input_weight = ret_weight[0]
         ret.__output_weight = ret_weight[1]

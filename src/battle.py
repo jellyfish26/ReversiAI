@@ -14,7 +14,7 @@ def battle_start(times, first_agent, second_agent):
         game = game_board.GameBoard(first_copy, second_copy)
         waiting_queue.append(executor.submit(game.game_start))
     for end_game in concurrent.futures.as_completed(waiting_queue):
-        game_result = end_game.result() + 1
+        game_result = end_game.result()[0] + 1
         if game_result == 3:
             game_result = 1
         count[game_result] += 1

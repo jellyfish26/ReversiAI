@@ -4,7 +4,6 @@ import random
 import tqdm
 import numpy as np
 import concurrent.futures
-from numba import jit
 
 
 class GALearning:
@@ -119,13 +118,13 @@ class QLearning:
 
 class NNGALearning:
     def __init__(self, evolve_times):
-        self.__NUMBER_INDIVIDUALS = 50  # more than 10
+        self.__NUMBER_INDIVIDUALS = 25  # more than 10
         self.__NUMBER_MUTATION = 5  # more than 2
         self.__EVOLVE_TIMES = evolve_times
         self.__now_generation = []
         self.__data_generation_average = []
-        self.__progress_bar = None
         self.__executor = concurrent.futures.ProcessPoolExecutor()
+        self.__progress_bar = None
         for number in range(0, self.__NUMBER_INDIVIDUALS):
             self.__now_generation.append([agent.NeuralNetworkGALeaningAgent(), 0])
 
@@ -133,13 +132,10 @@ class NNGALearning:
         waiting_queue = []
         for index in range(0, self.__NUMBER_INDIVIDUALS):
             for times in range(0, self.__NUMBER_INDIVIDUALS):
-                if times == index:
-                    continue
                 first = self.__now_generation[index][0].copy()
                 second = self.__now_generation[times][0].copy()
                 game = game_board.GameBoard(first, second)
                 waiting_queue.append(self.__executor.submit(game.game_start, (index, times)))
-        print(len(waiting_queue))
         for end_task in concurrent.futures.as_completed(waiting_queue):
             self.__progress_bar.update(1)
             if end_task.result()[0] == -1:
@@ -150,7 +146,6 @@ class NNGALearning:
     def __generation_sort(self):
         self.__now_generation.sort(key=lambda x: x[1], reverse=True)
 
-    @jit
     def __update_generation(self):
         ret = [[self.__now_generation[0][0], 0], [self.__now_generation[1][0], 0]]
         for times in range(2, self.__NUMBER_INDIVIDUALS - self.__NUMBER_MUTATION):
@@ -166,7 +161,6 @@ class NNGALearning:
         ret.append([agent.NeuralNetworkGALeaningAgent(), 0])
         self.__now_generation = ret
 
-    @jit
     def __calc_generation_average(self):
         ret = 0.0
         for now in self.__now_generation:
