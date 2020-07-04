@@ -143,6 +143,23 @@ class NNGALearning:
             elif end_task.result()[0] == 1:
                 self.__now_generation[end_task.result()[1][1]][1] += 1
 
+    def __battle_random_agent(self, is_first, partner):
+        waiting_queue = []
+        for index in range(0, self.__NUMBER_INDIVIDUALS):
+            for times in range(0, self.__NUMBER_INDIVIDUALS):
+                if is_first:
+                    first = self.__now_generation[index][0].copy()
+                    second = partner.copy()
+                else:
+                    first = partner.copy()
+                    second = self.__now_generation[index][0].copy()
+                game = game_board.GameBoard(first, second)
+                waiting_queue.append(self.__executor.submit(game.game_start, index))
+        for end_task in concurrent.futures.as_completed(waiting_queue):
+            self.__progress_bar.update(1)
+            if end_task.result()[0] == -1:
+                self.__now_generation[end_task.result()[1]][1] += 1
+
     def __generation_sort(self):
         self.__now_generation.sort(key=lambda x: x[1], reverse=True)
 
@@ -170,7 +187,7 @@ class NNGALearning:
     def save_data_generation_average(self, file_path):
         np.save(file_path, np.array(self.__data_generation_average))
 
-    def start(self, file_path, save_interval):
+    def start(self, file_path, save_interval, partner=None, is_first=True):
         self.__progress_bar = tqdm.tqdm(
             total=(self.__NUMBER_INDIVIDUALS) * (self.__NUMBER_INDIVIDUALS) * self.__EVOLVE_TIMES
         )
@@ -179,7 +196,10 @@ class NNGALearning:
             if times != 1:
                 self.__generation_sort()
                 self.__update_generation()
-            self.__battle_all_agent()
+            if partner is None:
+                self.__battle_all_agent()
+            else:
+                self.__battle_random_agent(partner, is_first)
             self.__data_generation_average.append(self.__calc_generation_average())
             if times % save_interval == 0:
                 self.__now_generation[0][0].save_weight_vector(file_path + str(times))
