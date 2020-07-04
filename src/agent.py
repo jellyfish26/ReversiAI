@@ -86,6 +86,11 @@ class HumanAgent(Agent):
 
     def receive_update_signal(self):
         self.control_panel.update_board(self.belong_game_board.reversi_board)
+        self.control_panel.update_game_status(self.belong_game_board.check_game_end(), self.agent_number)
+        self.control_panel.update_game_stone(
+            self.belong_game_board.count_stones(self.agent_number),
+            self.belong_game_board.count_stones(self.agent_number * -1)
+        )
 
     def receive_game_end_signal(self):
         pass

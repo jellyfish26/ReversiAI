@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import font
 import threading
 import copy
 
@@ -15,6 +16,8 @@ class ControlPanel(threading.Thread):
         self.__is_waiting_for_select = False
         self.__selectable_cells = []  # search tags
         self.__before_select_cell = ()
+        self.__game_status_label = None
+        self.__game_stone_label = None
 
     # tag: "cell" + vertical index + horizontal index, string join
     @staticmethod
@@ -55,6 +58,12 @@ class ControlPanel(threading.Thread):
         self.__root_tk.geometry("{}x{}+{}+{}".format(850, 650, 450, 150))
         self.__root_tk.resizable(width=0, height=0)
         self.__generate_board()
+        label_font = tk.font.Font(family='Helvetica', size=16, weight='bold')
+        self.__game_status_label = tk.Label(self.__root_tk, text="Start Up...", font=label_font)
+        self.__game_status_label.place(x=700, y=50)
+        label_font = tk.font.Font(family='Helvetica', size=15, weight='bold')
+        self.__game_stone_label = tk.Label(self.__root_tk, text="(My) 0 - 0 (Enemy)", font=label_font)
+        self.__game_stone_label.place(x=665, y=100)
         self.__is_ready = True
         self.__root_tk.mainloop()
 
@@ -74,6 +83,20 @@ class ControlPanel(threading.Thread):
         for vertical_index, vertical_array in enumerate(reversi_board):
             for horizontal_index, cell_state in enumerate(vertical_array):
                 self.__put_stone(vertical_index, horizontal_index, cell_state)
+
+    def update_game_status(self, game_state, my_agent_number):
+        if game_state == 0:
+            self.__game_status_label.configure(text="Playing")
+        elif game_state == my_agent_number:
+            self.__game_status_label.configure(text="You Win!!")
+        elif game_state == my_agent_number * -1:
+            self.__game_status_label.configure(text="You Lose!!")
+        else:
+            self.__game_status_label.configure(text="Draw!!")
+
+    def update_game_stone(self, my_stone, enemy_stone):
+        change_text = "(My) " + str(my_stone) + " - " + str(enemy_stone) + " (Enemy)"
+        self.__game_stone_label.configure(text=change_text)
 
     def __update_cell(self, cell_tag, is_selectable):
         self.__reversi_canvas.itemconfig(cell_tag, fill="lime green" if is_selectable else "forest green")
