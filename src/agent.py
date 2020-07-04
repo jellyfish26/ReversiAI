@@ -430,7 +430,7 @@ class NeuralNetworkGALeaningAgent(Agent):
     # under about Neural Network
     @staticmethod
     def sigmoid(x):
-        return (np.tanh(x / 2) + 1) / 2
+        return 1.0 / (1.0 + np.exp(-x))
 
     # forward propagation
     def forward(self):

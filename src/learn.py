@@ -172,14 +172,14 @@ class NNGALearning:
 
     def start(self, file_path, save_interval):
         self.__progress_bar = tqdm.tqdm(
-            total=(self.__NUMBER_INDIVIDUALS) * (self.__NUMBER_INDIVIDUALS - 1) * self.__EVOLVE_TIMES
+            total=(self.__NUMBER_INDIVIDUALS) * (self.__NUMBER_INDIVIDUALS) * self.__EVOLVE_TIMES
         )
         self.__progress_bar.set_description('learning ' + str(self.__EVOLVE_TIMES) + ' generations...')
         for times in range(1, self.__EVOLVE_TIMES + 1):
             if times != 1:
+                self.__generation_sort()
                 self.__update_generation()
             self.__battle_all_agent()
-            self.__generation_sort()
             self.__data_generation_average.append(self.__calc_generation_average())
             if times % save_interval == 0:
                 self.__now_generation[0][0].save_weight_vector(file_path + str(times))
