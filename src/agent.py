@@ -426,17 +426,26 @@ class QLeaningAgent(Agent):
         self.__weight_vector = np.load(file_path)
 
 
+# is_ReLU is True Relu, False is sigmoid
 class NeuralNetworkGALeaningAgent(Agent):
-    def __init__(self):
+    def __init__(self, is_ReLU):
         super().__init__("NNGA", False)
+        self.__is_ReLU = is_ReLU
         self.__now_vector = np.zeros(8)
-        self.__input_weight = np.random.rand(8, 15)
-        self.__output_weight = np.random.rand(15, 1)
+        self.__input_weight = 20 * np.random.rand(8, 15) - 10
+        self.__output_weight = 20 * np.random.rand(15, 1) - 10
+        if not is_ReLU:
+            self.__input_weight = 2 * np.random.rand(8, 15) - 1
+            self.__output_weight = 2 * np.random.rand(15, 1) - 1
 
     # under about Neural Network
     @staticmethod
     def sigmoid(x):
         return 1.0 / (1.0 + np.exp(-x))
+
+    @staticmethod
+    def ReLU(x):
+        return np.maximum(0, x)
 
     # forward propagation
     def forward(self):
@@ -444,7 +453,10 @@ class NeuralNetworkGALeaningAgent(Agent):
         now_layer = copy.deepcopy(self.__now_vector)
         # first middle layer
         now_layer = np.dot(now_layer, self.__input_weight)
-        now_layer = self.sigmoid(now_layer)
+        if self.__is_ReLU:
+            now_layer = self.ReLU(now_layer)
+        else:
+            now_layer = self.sigmoid(now_layer)
         # output layer
         now_layer = np.dot(now_layer, self.__output_weight)
         return now_layer[0]
@@ -467,6 +479,7 @@ class NeuralNetworkGALeaningAgent(Agent):
                         my_count += 1
                     elif custom_reversi_board[vertical_index][horizontal_index] == agent_number * -1:
                         enemy_count += 1
+
         specific_count_stone([0, 7], [0, 7])
         ret[0] = my_count
         ret[1] = enemy_count
@@ -522,7 +535,7 @@ class NeuralNetworkGALeaningAgent(Agent):
         return [self.__input_weight, self.__output_weight]
 
     def cross_over_one_point(self, add_agent):
-        ret = NeuralNetworkGALeaningAgent()
+        ret = NeuralNetworkGALeaningAgent(self.__is_ReLU)
         if not isinstance(add_agent, NeuralNetworkGALeaningAgent):
             raise Exception("this method same class as the argument")
 
@@ -555,7 +568,11 @@ class NeuralNetworkGALeaningAgent(Agent):
             shape_info = now_weight.shape
             now_weight = now_weight.reshape(shape_info[0] * shape_info[1])
             for i in range(0, 2):
-                now_weight[random.randint(0, shape_info[0] * shape_info[1] - 1)] = random.random()
+                if self.__is_ReLU:
+                    now_weight[random.randint(0, shape_info[0] * shape_info[1] - 1)] = 20 * random.random() - 10
+                else:
+                    now_weight[random.randint(0, shape_info[0] * shape_info[1] - 1)] = 2 * random.random() - 1
+
             now_weight = now_weight.reshape(shape_info)
             for first_index, inner_array in enumerate(now_weight):
                 for second_index, value in enumerate(inner_array):
