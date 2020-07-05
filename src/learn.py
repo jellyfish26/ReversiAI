@@ -119,7 +119,7 @@ class QLearning:
 class NNGALearning:
     def __init__(self, evolve_times, is_ReLU, number_individuals, number_mutation):
         self.__NUMBER_INDIVIDUALS = number_individuals  # more than 10
-        self.__NUMBER_MUTATION = number_individuals  # more than 2
+        self.__NUMBER_MUTATION = number_mutation  # more than 2
         self.__EVOLVE_TIMES = evolve_times
         self.__now_generation = []
         self.__data_generation_average = []
