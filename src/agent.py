@@ -742,7 +742,7 @@ class DQNAgent(Agent):
         elif self.belong_game_board.check_game_end() == 2:
             self.__save_action(0)
         else:
-            self.__save_action(1)
+            self.__save_action(-1)
         state_batch, update_value = self.__generate_batch()
         self.__train_model(state_batch, update_value)
 
@@ -755,7 +755,18 @@ class DQNAgent(Agent):
         self.__t_network.load_weights("temp.hdf5")
 
     def save_weight(self, file_path):
-        self.__t_network.save_weights(file_path)
+        self.__t_network.save_weights(file_path + ".h5")
+
+    def save(self, file_path):
+        self.__t_network.save(file_path + ".h5")
 
     def load_weight(self, file_path):
-        self.__t_network.load_weights(file_path)
+        self.__t_network.load_weights(file_path + ".h5")
+
+    def load(self, file_path):
+        self.__t_network = krs_models.load_model(file_path + ".h5")
+
+    def copy(self):
+        ret = DQNAgent(self.__is_learning, self.__BATCH_SIZE, self.__EPSILON, self.__GAMMA)
+        ret.__t_network.set_weights(self.__t_network.get_weights())
+        return ret

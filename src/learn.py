@@ -227,8 +227,8 @@ class DQNLearning:
                 second_agent.weight_copy()
             if times % save_interval == 0:
                 if isinstance(first_agent, agent.DQNAgent):
-                    first_agent.save_weight(file_path + str(times))
+                    first_agent.save(file_path + str(times))
                 if isinstance(second_agent, agent.DQNAgent):
-                    second_agent.save_weight(file_path + str(times) + "-rev")
+                    second_agent.save(file_path + str(times) + "-rev")
             self.__progress_bar.update(1)
         self.__progress_bar.close()
