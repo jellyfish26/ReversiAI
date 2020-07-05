@@ -6,6 +6,10 @@ import numpy as np
 import copy
 import math
 import tensorflow.keras.layers as krs_layer
+import tensorflow.keras.models as krs_models
+import tensorflow.keras.optimizers as krs_optimizers
+import tensorflow.keras.utils as krs_utils
+import tensorflow.keras.losses as krs_losses
 
 
 class Agent(metaclass=ABCMeta):
@@ -592,12 +596,104 @@ class NeuralNetworkGALeaningAgent(Agent):
 
 
 class DQNAgent(Agent):
-    def __init__(self):
-        super().__init__("DQN", False)
-
     @staticmethod
     def __generate_model():
-        pass
+        now_state_input = krs_layer.Input(shape=(8, 8, 1))
+        action_state_input = krs_layer.Input(shape=(8, 8, 1))
+        now_state_conv = krs_layer.Conv2D(32, (3, 3), activation="relu")(now_state_input)
+        action_state_conv = krs_layer.Conv2D(32, (3, 3), activation="relu")(action_state_input)
+        combined_layer = krs_layer.concatenate([now_state_conv, action_state_conv])
+        combined_layer = krs_layer.Conv2D(64, (3, 3), activation="relu")(combined_layer)
+        combined_layer = krs_layer.Conv2D(64, (3, 3), activation="relu")(combined_layer)
+        combined_layer = krs_layer.Flatten()(combined_layer)
+        last_layer = krs_layer.Dense(1, activation="relu")(combined_layer)
+        rms_prop = krs_optimizers.RMSprop(lr=0.001, rho=0.9, epsilon=0.01, decay=0.0)
+        model = krs_models.Model(inputs=[now_state_input, action_state_input], outputs=last_layer)
+        model.compile(rms_prop, loss=krs_losses.Huber())
+        return model
+
+    @staticmethod
+    def get_model_picture(file_path):
+        krs_utils.plot_model(DQNAgent.__generate_model(), file_path, show_shapes=True)
+
+    def __init__(self, is_learning):
+        super().__init__("DQN", False)
+        self.__q_network = self.__generate_model()
+        self.__is_learning = is_learning
+        self.__EPSILON = 0.1
+
+    def __get_q_value(self, now_state_input, action_state_input):
+        return self.__q_network.predict_on_batch([now_state_input, action_state_input])
+
+    def __train_model(self, state_batch, calc_batch):
+        self.__q_network.train_on_batch(state_batch, calc_batch)
+
+    # From the state this agent was in.
+    def __get_next_state_max_q_value(self, now_game_board):
+        enemy_selectable_cells = game_board.GameBoard.get_selectable_cells_custom_board(
+            self.agent_number * -1,
+            now_game_board
+        )
+        accumulation_q_value = []
+
+        def my_selectable_calc(enemy_game_board):
+            nonlocal accumulation_q_value
+            my_selectable_cells = game_board.GameBoard.get_selectable_cells_custom_board(
+                self.agent_number,
+                enemy_game_board
+            )
+            if len(my_selectable_cells) == 0:
+                accumulation_q_value.append(self.__get_q_value(enemy_game_board, enemy_game_board))
+            else:
+                next_game_board = copy.deepcopy(now_game_board)
+                for my_select_cell in my_selectable_cells:
+                    if __name__ == '__main__':
+                        my_change_cells = game_board.GameBoard.put_stone_custom_board(
+                            my_select_cell[0],
+                            my_select_cell[1],
+                            self.agent_number,
+                            next_game_board
+                        )
+                        accumulation_q_value.append(self.__get_q_value(enemy_game_board, next_game_board))
+                        game_board.GameBoard.undo_put_stone_custom_board(my_change_cells, next_game_board)
+
+        if len(enemy_selectable_cells) == 0:
+            my_selectable_calc(now_game_board)
+        else:
+            for enemy_select_cell in enemy_selectable_cells:
+                change_cells = game_board.GameBoard.put_stone_custom_board(
+                    enemy_select_cell[0],
+                    enemy_select_cell[1],
+                    self.agent_number,
+                    now_game_board
+                )
+                my_selectable_calc(now_game_board)
+                game_board.GameBoard.undo_put_stone_custom_board(change_cells, now_game_board)
+        return max(accumulation_q_value)
+
+    def __get_action(self, epsilon):
+        my_selectable_cells = self.belong_game_board.get_selectable_cells(self.agent_number)
+        if random.random() < epsilon:
+            return random.sample(my_selectable_cells, 1)
+        next_game_board = copy.deepcopy(self.belong_game_board.reversi_board)
+        ret = 0
+        max_value = -1000
+        for index, select_cell in enumerate(my_selectable_cells):
+            change_cells = game_board.GameBoard.put_stone_custom_board(
+                select_cell[0],
+                select_cell[1],
+                self.agent_number,
+                next_game_board
+            )
+            now_value = self.__get_q_value(
+                self.belong_game_board.reversi_board,
+                next_game_board
+            )
+            if max_value < now_value:
+                ret = index
+                max_value = now_value
+            game_board.GameBoard.undo_put_stone_custom_board(change_cells, next_game_board)
+        return my_selectable_cells[ret]
 
     def receive_update_signal(self):
         pass
@@ -606,4 +702,4 @@ class DQNAgent(Agent):
         pass
 
     def next_step(self):
-        pass
+        return self.__get_action(self.__EPSILON if self.__is_learning else 0)

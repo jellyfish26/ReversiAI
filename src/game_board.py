@@ -130,6 +130,12 @@ class GameBoard(object):
             ret.append((cell[0], cell[1]))
         return np.array(ret)
 
+    @staticmethod
+    def undo_put_stone_custom_board(change_cells, custom_reversi_board):
+        custom_reversi_board[change_cells[0][0]][change_cells[0][1]] = 0
+        for cell in change_cells[1:]:
+            custom_reversi_board[cell[0]][cell[1]] *= 1
+
     def put_stone(self, vertical_index, horizontal_index, agent_number):
         self.put_stone_custom_board(
             vertical_index,
