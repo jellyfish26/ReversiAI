@@ -117,9 +117,9 @@ class QLearning:
 
 
 class NNGALearning:
-    def __init__(self, evolve_times, is_ReLU):
-        self.__NUMBER_INDIVIDUALS = 25  # more than 10
-        self.__NUMBER_MUTATION = 5  # more than 2
+    def __init__(self, evolve_times, is_ReLU, number_individuals, number_mutation):
+        self.__NUMBER_INDIVIDUALS = number_individuals  # more than 10
+        self.__NUMBER_MUTATION = number_individuals  # more than 2
         self.__EVOLVE_TIMES = evolve_times
         self.__now_generation = []
         self.__data_generation_average = []
@@ -158,7 +158,9 @@ class NNGALearning:
                 waiting_queue.append(self.__executor.submit(game.game_start, index))
         for end_task in concurrent.futures.as_completed(waiting_queue):
             self.__progress_bar.update(1)
-            if end_task.result()[0] == -1:
+            if end_task.result()[0] == -1 and is_first:
+                self.__now_generation[end_task.result()[1]][1] += 1
+            elif end_task.result()[0] == 1 and not is_first:
                 self.__now_generation[end_task.result()[1]][1] += 1
 
     def __generation_sort(self):

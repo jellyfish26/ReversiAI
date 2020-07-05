@@ -5,7 +5,7 @@ import random
 import numpy as np
 import copy
 import math
-import tensorflow.keras
+import tensorflow.keras.layers as krs_layer
 
 
 class Agent(metaclass=ABCMeta):
@@ -589,3 +589,21 @@ class NeuralNetworkGALeaningAgent(Agent):
         weight_vector = np.load(file_path, allow_pickle=True)
         self.__input_weight = weight_vector[0]
         self.__output_weight = weight_vector[1]
+
+
+class DQNAgent(Agent):
+    def __init__(self):
+        super().__init__("DQN", False)
+
+    @staticmethod
+    def __generate_model():
+        pass
+
+    def receive_update_signal(self):
+        pass
+
+    def receive_game_end_signal(self):
+        pass
+
+    def next_step(self):
+        pass
