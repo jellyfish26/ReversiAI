@@ -10,6 +10,7 @@ import tensorflow.keras.models as krs_models
 import tensorflow.keras.optimizers as krs_optimizers
 import tensorflow.keras.utils as krs_utils
 import tensorflow.keras.losses as krs_losses
+from collections import deque
 
 
 class Agent(metaclass=ABCMeta):
@@ -616,14 +617,19 @@ class DQNAgent(Agent):
     def get_model_picture(file_path):
         krs_utils.plot_model(DQNAgent.__generate_model(), file_path, show_shapes=True)
 
-    def __init__(self, is_learning):
+    def __init__(self, is_learning, batch_size, epsilon, gamma):
         super().__init__("DQN", False)
-        self.__q_network = self.__generate_model()
+        self.__q_network = self.__generate_model()  # q_network
+        self.__t_network = self.__generate_model()  # target_network
         self.__is_learning = is_learning
-        self.__EPSILON = 0.1
+        self.__EPSILON = epsilon
+        self.__GAMMA = gamma
+        self.__BATCH_SIZE = batch_size
+        self.__before_reversi_board = None
+        self.__replay_data = deque()
 
     def __get_q_value(self, now_state_input, action_state_input):
-        return self.__q_network.predict_on_batch([now_state_input, action_state_input])
+        return self.__t_network.predict_on_batch([now_state_input, action_state_input])
 
     def __train_model(self, state_batch, calc_batch):
         self.__q_network.train_on_batch(state_batch, calc_batch)
@@ -695,11 +701,45 @@ class DQNAgent(Agent):
             game_board.GameBoard.undo_put_stone_custom_board(change_cells, next_game_board)
         return my_selectable_cells[ret]
 
+    def __save_action(self, reward):
+        if len(self.__replay_data) == self.__BATCH_SIZE * 2:
+            self.__replay_data.popleft()
+        max_value = self.__get_next_state_max_q_value(copy.deepcopy(self.belong_game_board.reversi_board))
+        update_value = reward + self.__GAMMA * max_value
+        self.__replay_data.append([[self.__before_reversi_board, self.belong_game_board.reversi_board], update_value])
+
+    def __generate_batch(self):
+        batch_data = random.sample(self.__replay_data, self.__BATCH_SIZE)
+        state_batch, update_value = map(np.array, zip(*batch_data))
+        return state_batch, update_value
+
     def receive_update_signal(self):
-        pass
+        if self.belong_game_board.turn_agent_number == self.agent_number:
+            self.__save_action(0)
+            state_batch, update_value = self.__generate_batch()
+            self.__train_model(state_batch, update_value)
 
     def receive_game_end_signal(self):
-        pass
+        self.__before_reversi_board = copy.deepcopy(self.belong_game_board.reversi_board)
+        if self.belong_game_board.check_game_end() == self.agent_number:
+            self.__save_action(1)
+        elif self.belong_game_board.check_game_end() == 2:
+            self.__save_action(0)
+        else:
+            self.__save_action(1)
+        state_batch, update_value = self.__generate_batch()
+        self.__train_model(state_batch, update_value)
 
     def next_step(self):
+        self.__before_reversi_board = copy.deepcopy(self.belong_game_board.reversi_board)
         return self.__get_action(self.__EPSILON if self.__is_learning else 0)
+
+    def weight_copy(self):
+        self.__q_network.save_weights("temp.hdf5")
+        self.__t_network.load_weights("temp.hdf5")
+
+    def save_weight(self, file_path):
+        self.__t_network.save_weights(file_path)
+
+    def load_weight(self, file_path):
+        self.__t_network.load_weights(file_path)
