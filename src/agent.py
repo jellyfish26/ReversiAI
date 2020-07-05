@@ -601,11 +601,11 @@ class DQNAgent(Agent):
     def __generate_model():
         now_state_input = krs_layer.Input(shape=(8, 8, 1))
         action_state_input = krs_layer.Input(shape=(8, 8, 1))
-        now_state_conv = krs_layer.Conv2D(32, (3, 3), activation="relu")(now_state_input)
-        action_state_conv = krs_layer.Conv2D(32, (3, 3), activation="relu")(action_state_input)
+        now_state_conv = krs_layer.Conv2D(32, (5, 5), strides=(2, 2), activation="relu", padding="same")(now_state_input)
+        action_state_conv = krs_layer.Conv2D(32, (5, 5), strides=(2, 2), activation="relu", padding="same")(action_state_input)
         combined_layer = krs_layer.concatenate([now_state_conv, action_state_conv])
-        combined_layer = krs_layer.Conv2D(64, (3, 3), activation="relu")(combined_layer)
-        combined_layer = krs_layer.Conv2D(64, (3, 3), activation="relu")(combined_layer)
+        combined_layer = krs_layer.Conv2D(64, (3, 3), strides=(3, 3), activation="relu", padding="same")(combined_layer)
+        combined_layer = krs_layer.Conv2D(64, (3, 3), strides=(3, 3), activation="relu", padding="same")(combined_layer)
         combined_layer = krs_layer.Flatten()(combined_layer)
         last_layer = krs_layer.Dense(1, activation="relu")(combined_layer)
         rms_prop = krs_optimizers.RMSprop(lr=0.001, rho=0.9, epsilon=0.01, decay=0.0)
@@ -617,7 +617,7 @@ class DQNAgent(Agent):
     def get_model_picture(file_path):
         krs_utils.plot_model(DQNAgent.__generate_model(), file_path, show_shapes=True)
 
-    def __init__(self, is_learning, batch_size, epsilon, gamma):
+    def __init__(self, is_learning, batch_size=None, epsilon=None, gamma=None):
         super().__init__("DQN", False)
         self.__q_network = self.__generate_model()  # q_network
         self.__t_network = self.__generate_model()  # target_network
@@ -629,7 +629,11 @@ class DQNAgent(Agent):
         self.__replay_data = deque()
 
     def __get_q_value(self, now_state_input, action_state_input):
-        return self.__t_network.predict_on_batch([now_state_input, action_state_input])
+        first = np.array(now_state_input)
+        first = first.reshape((1, 8, 8))
+        second = np.array(action_state_input)
+        second = second.reshape((1, 8, 8))
+        return self.__t_network.predict_on_batch([first, second])[0]
 
     def __train_model(self, state_batch, calc_batch):
         self.__q_network.train_on_batch(state_batch, calc_batch)
@@ -653,15 +657,14 @@ class DQNAgent(Agent):
             else:
                 next_game_board = copy.deepcopy(now_game_board)
                 for my_select_cell in my_selectable_cells:
-                    if __name__ == '__main__':
-                        my_change_cells = game_board.GameBoard.put_stone_custom_board(
-                            my_select_cell[0],
-                            my_select_cell[1],
-                            self.agent_number,
-                            next_game_board
-                        )
-                        accumulation_q_value.append(self.__get_q_value(enemy_game_board, next_game_board))
-                        game_board.GameBoard.undo_put_stone_custom_board(my_change_cells, next_game_board)
+                    my_change_cells = game_board.GameBoard.put_stone_custom_board(
+                        my_select_cell[0],
+                        my_select_cell[1],
+                        self.agent_number,
+                        next_game_board
+                    )
+                    accumulation_q_value.append(self.__get_q_value(enemy_game_board, next_game_board))
+                    game_board.GameBoard.undo_put_stone_custom_board(my_change_cells, next_game_board)
 
         if len(enemy_selectable_cells) == 0:
             my_selectable_calc(now_game_board)
@@ -680,7 +683,7 @@ class DQNAgent(Agent):
     def __get_action(self, epsilon):
         my_selectable_cells = self.belong_game_board.get_selectable_cells(self.agent_number)
         if random.random() < epsilon:
-            return random.sample(my_selectable_cells, 1)
+            return my_selectable_cells[random.randint(0, len(my_selectable_cells) - 1)]
         next_game_board = copy.deepcopy(self.belong_game_board.reversi_board)
         ret = 0
         max_value = -1000
@@ -694,7 +697,7 @@ class DQNAgent(Agent):
             now_value = self.__get_q_value(
                 self.belong_game_board.reversi_board,
                 next_game_board
-            )
+            )[0]
             if max_value < now_value:
                 ret = index
                 max_value = now_value
@@ -706,20 +709,33 @@ class DQNAgent(Agent):
             self.__replay_data.popleft()
         max_value = self.__get_next_state_max_q_value(copy.deepcopy(self.belong_game_board.reversi_board))
         update_value = reward + self.__GAMMA * max_value
-        self.__replay_data.append([[self.__before_reversi_board, self.belong_game_board.reversi_board], update_value])
+        self.__replay_data.append(
+            [
+                np.array(self.__before_reversi_board),
+                np.array(self.belong_game_board.reversi_board),
+                update_value
+            ]
+        )
 
     def __generate_batch(self):
         batch_data = random.sample(self.__replay_data, self.__BATCH_SIZE)
-        state_batch, update_value = map(np.array, zip(*batch_data))
+        first_batch, second_batch, update_value = map(np.array, zip(*batch_data))
+        state_batch = [first_batch, second_batch]
         return state_batch, update_value
 
     def receive_update_signal(self):
+        if not self.__is_learning:
+            return
         if self.belong_game_board.turn_agent_number == self.agent_number:
             self.__save_action(0)
+            if len(self.__replay_data) < self.__BATCH_SIZE:
+                return
             state_batch, update_value = self.__generate_batch()
             self.__train_model(state_batch, update_value)
 
     def receive_game_end_signal(self):
+        if not self.__is_learning:
+            return 
         self.__before_reversi_board = copy.deepcopy(self.belong_game_board.reversi_board)
         if self.belong_game_board.check_game_end() == self.agent_number:
             self.__save_action(1)

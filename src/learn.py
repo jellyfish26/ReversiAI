@@ -208,3 +208,27 @@ class NNGALearning:
                 self.__now_generation[0][0].save_weight_vector(file_path + str(times))
         self.__executor.shutdown()
         self.__progress_bar.close()
+
+
+class DQNLearning:
+    def __init__(self, evolve_times):
+        self.__EVOLVE_TIMES = evolve_times
+        self.__progress_bar = None
+
+    def start(self, file_path, save_interval, first_agent, second_agent):
+        self.__progress_bar = tqdm.tqdm(total=self.__EVOLVE_TIMES)
+        self.__progress_bar.set_description('learning ' + str(self.__EVOLVE_TIMES) + ' times...')
+        for times in range(1, self.__EVOLVE_TIMES + 1):
+            game = game_board.GameBoard(first_agent,second_agent)
+            game.game_start()
+            if isinstance(first_agent, agent.DQNAgent):
+                first_agent.weight_copy()
+            if isinstance(second_agent, agent.DQNAgent):
+                second_agent.weight_copy()
+            if times % save_interval == 0:
+                if isinstance(first_agent, agent.DQNAgent):
+                    first_agent.save_weight(file_path + str(times))
+                if isinstance(second_agent, agent.DQNAgent):
+                    second_agent.save_weight(file_path + str(times) + "-rev")
+            self.__progress_bar.update(1)
+        self.__progress_bar.close()
