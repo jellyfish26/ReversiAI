@@ -5,12 +5,14 @@ import random
 import numpy as np
 import copy
 import math
+import tensorflow as tf
 import tensorflow.keras.layers as krs_layer
 import tensorflow.keras.models as krs_models
 import tensorflow.keras.optimizers as krs_optimizers
 import tensorflow.keras.utils as krs_utils
 import tensorflow.keras.losses as krs_losses
 from collections import deque
+
 
 
 class Agent(metaclass=ABCMeta):
@@ -617,7 +619,15 @@ class DQNAgent(Agent):
     def get_model_picture(file_path):
         krs_utils.plot_model(DQNAgent.__generate_model(), file_path, show_shapes=True)
 
+    @staticmethod
+    def setting_gpu():
+        physical_devices = tf.config.experimental.list_physical_devices('GPU')
+        if len(physical_devices) > 0:
+            for k in range(len(physical_devices)):
+                tf.config.experimental.set_memory_growth(physical_devices[k], True)
+
     def __init__(self, is_learning, batch_size=None, epsilon=None, gamma=None):
+        self.setting_gpu()
         super().__init__("DQN", False)
         self.__q_network = self.__generate_model()  # q_network
         self.__t_network = self.__generate_model()  # target_network
