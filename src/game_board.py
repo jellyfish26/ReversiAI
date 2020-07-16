@@ -98,7 +98,7 @@ class GameBoard(object):
     def count_stones(self, agent_number):
         return self.count_stones_custom_board(agent_number, self.__reversi_board)
 
-    # white win = -1, black win = 1, draw = 2, nothing = 0
+    # white win = -1, black win = 1, draw = 2, nothing = 0, abnormal termination = 3
     def check_game_end(self):
         if self.__is_game_end != 0:
             return self.__is_game_end
@@ -159,6 +159,9 @@ class GameBoard(object):
                 select_cell = self.__first_agent.next_step()
             else:
                 select_cell = self.__second_agent.next_step()
+            if select_cell[0] == -1 and select_cell[1] == -1:
+                self.__is_game_end = 3
+                return self.check_game_end(), save_data
             self.put_stone(select_cell[0], select_cell[1], self.__turn_agent_number)
             self.__first_agent.receive_update_signal()
             self.__second_agent.receive_update_signal()

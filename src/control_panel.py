@@ -3,7 +3,6 @@ from tkinter import font
 import threading
 import copy
 
-
 class ControlPanel(threading.Thread):
     def __init__(self, agent_name):
         threading.Thread.__init__(self)
@@ -46,9 +45,7 @@ class ControlPanel(threading.Thread):
                 self.__reversi_canvas.tag_bind(position_tag, "<ButtonPress-1>", self.__pressed_button)
 
     def __callback(self):
-        self.__root_tk.destroy()
         self.__root_tk.quit()
-        self.__is_running = False
 
     def run(self):
         self.__is_running = True
@@ -66,6 +63,8 @@ class ControlPanel(threading.Thread):
         self.__game_stone_label.place(x=665, y=100)
         self.__is_ready = True
         self.__root_tk.mainloop()
+        self.__is_running = False
+        self.__is_ready = False
 
     def __put_stone(self, vertical_index, horizontal_index, agent_number):
         if agent_number == 0:
@@ -110,6 +109,8 @@ class ControlPanel(threading.Thread):
             self.__update_cell(cell_tag, True)
         self.__is_waiting_for_select = True
         while self.__is_waiting_for_select:
+            if not self.__is_running:
+                return -1, -1
             pass
         for now in selectable_cells:
             self.__update_cell(self.__index_to_tag(now[0], now[1]), False)
